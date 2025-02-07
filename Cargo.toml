@@ -3,6 +3,14 @@ name = "rust-simple-chat"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "chat"
+path = "src/bin/chat/main.rs"
+
+[[bin]]
+name = "worker"
+path = "src/bin/worker/main.rs"
+
 [dependencies]
 axum = { version = "0.8.1", features = [
     "http1",
