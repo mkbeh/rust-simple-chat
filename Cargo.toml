@@ -12,16 +12,9 @@ name = "worker"
 path = "src/bin/worker/main.rs"
 
 [dependencies]
-axum = { version = "0.8.1", features = [
-    "http1",
-    "http2",
-    "json",
-] }
+axum = { version = "0.8.1", features = ["http1", "http2", "json"] }
 tokio = { version = "1.43.0", features = ["full"] }
 anyhow = "1.0.95"
-serde = { version = "1.0.217", features = [
-    "derive"
-] }
-chrono = { version = "0.4.39", features = [
-    "serde"
-] }
+serde = { version = "1.0.217", features = ["derive"] }
+chrono = { version = "0.4.39", features = ["serde"] }
+clap = { version = "4.5.28", features = ["derive", "env"] }
