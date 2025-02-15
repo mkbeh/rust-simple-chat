@@ -1,6 +1,6 @@
+pub mod handler;
 mod healthz;
 pub mod router;
-mod v1;
+pub mod v1;
 
-use healthz::*;
-pub use router::get_router;
+pub use self::{handler::Handler, healthz::*, router::get_router};

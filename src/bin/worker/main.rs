@@ -1,3 +1,3 @@
 fn main() {
-    println!("Hello, world from worker!");
+    println!("Run and schedule smth!");
 }

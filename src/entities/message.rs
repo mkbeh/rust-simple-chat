@@ -8,11 +8,12 @@ pub struct PostMessageRequest {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PostMessageResponse {
-    pub id: u64,
+    pub(crate) message_id: i64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MessageResponse {
-    pub text: String,
+    pub message_id: i64,
+    pub content: String,
     pub posted_at: DateTime<Utc>,
 }

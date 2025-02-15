@@ -14,7 +14,12 @@ path = "src/bin/worker/main.rs"
 [dependencies]
 axum = { version = "0.8.1", features = ["http1", "http2", "json"] }
 tokio = { version = "1.43.0", features = ["full"] }
-anyhow = "1.0.95"
+anyhow = { version = "1.0.95", default-features = false }
 serde = { version = "1.0.217", features = ["derive"] }
 chrono = { version = "0.4.39", features = ["serde"] }
 clap = { version = "4.5.28", features = ["derive", "env"] }
+humantime = { version = "2.1.0" }
+deadpool-postgres = { version = "0.14.1" }
+tokio-postgres = { version = "0.7.13", features = ["with-chrono-0_4"] }
+tokio-postgres-utils = { version = "0.2.0" }
+tower= {version = "0.5.2"}
