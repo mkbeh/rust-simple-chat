@@ -5,8 +5,9 @@ use anyhow::anyhow;
 use app::api;
 use app::config::Config;
 use app::core_utils::closer::Closer;
+use app::core_utils::http_server::Server;
+use app::core_utils::postgres_pool;
 use app::infra::repositories;
-use app::server::Server;
 
 pub struct Entrypoint<'a> {
     config: Config,
@@ -24,7 +25,7 @@ impl<'a> Entrypoint<'_> {
     pub async fn bootstrap_server(&mut self) -> anyhow::Result<()> {
         // todo: init logger, tracer, etc
 
-        let pool = repositories::pool::build_pool_from_config(
+        let pool = postgres_pool::build_pool_from_config(
             self.config.server.client_id.clone(),
             self.config.postgres.clone(),
         )
@@ -36,10 +37,8 @@ impl<'a> Entrypoint<'_> {
 
         self.closer.push(Box::new(move || pool.close()));
 
-        let router = api::get_router(handler);
         let srv = Server::new(self.config.server.clone());
-
-        srv.with_router(router)
+        srv.with_router(api::get_router(handler))
             .run()
             .await
             .map_err(|err| anyhow!("handling server error: {}", err))?;
