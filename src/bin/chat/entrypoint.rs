@@ -4,41 +4,50 @@ use anyhow::anyhow;
 
 use app::api;
 use app::config::Config;
+use app::core_utils::closer::Closer;
 use app::infra::repositories;
 use app::server::Server;
 
-pub struct Entrypoint {}
+pub struct Entrypoint<'a> {
+    config: Config,
+    closer: Closer<'a>,
+}
 
-impl Entrypoint {
-    pub fn new() -> Self {
-        Self {}
+impl<'a> Entrypoint<'_> {
+    pub fn new(config: Config) -> Self {
+        Self {
+            config,
+            closer: Closer::new(),
+        }
     }
 
-    pub async fn run_and_shutdown(&mut self, cfg: Config) -> anyhow::Result<()> {
+    pub async fn bootstrap_server(&mut self) -> anyhow::Result<()> {
         // todo: init logger, tracer, etc
 
         let pool = repositories::pool::build_pool_from_config(
-            cfg.server.client_id.clone(),
-            cfg.postgres.clone(),
+            self.config.server.client_id.clone(),
+            self.config.postgres.clone(),
         )
         .map_err(|err| anyhow!("failed to create pool: {:?}", err))?;
 
-        let messages_repository = repositories::MessagesRepository::new(pool.clone());
-
         let handler = Arc::new(api::Handler {
-            messages_repository,
+            messages_repository: repositories::MessagesRepository::new(pool.clone()),
         });
 
-        let router = api::get_router(handler);
-        let mut srv = Server::new(cfg.server);
+        self.closer.push(Box::new(move || pool.close()));
 
-        srv.run(router)
+        let router = api::get_router(handler);
+        let srv = Server::new(self.config.server.clone());
+
+        srv.with_router(router)
+            .run()
             .await
             .map_err(|err| anyhow!("handling server error: {}", err))?;
 
-        srv.add_closer(pool);
-        srv.shutdown().await;
-
         Ok(())
+    }
+
+    pub async fn shutdown(&mut self) {
+        self.closer.close();
     }
 }

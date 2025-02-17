@@ -9,10 +9,14 @@ use entrypoint::Entrypoint;
 async fn main() {
     let config = config::Config::parse();
 
-    let mut ep = Entrypoint::new();
-    match ep.run_and_shutdown(config).await {
-        Ok(_) => std::process::exit(0),
+    let mut ep = Entrypoint::new(config);
+    match ep.bootstrap_server().await {
+        Ok(_) => {
+            ep.shutdown().await;
+            std::process::exit(0)
+        }
         Err(e) => {
+            ep.shutdown().await;
             println!("Failed to start server: {}", e);
             std::process::exit(1);
         }

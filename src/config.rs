@@ -1,33 +1,19 @@
 use clap::Parser;
 use humantime;
 
+use crate::server;
+
 pub struct Config {
-    pub server: ServerConfig,
+    pub server: server::Config,
     pub postgres: PostgresConfig,
 }
 
 impl Config {
     pub fn parse() -> Self {
         Config {
-            server: ServerConfig::parse(),
+            server: server::Config::parse(),
             postgres: PostgresConfig::parse(),
         }
-    }
-}
-
-#[derive(Parser, Debug, Clone)]
-pub struct ServerConfig {
-    #[arg(long, env = "CLIENT_ID")]
-    pub client_id: String,
-    #[arg(long, env = "SERVER_HOST", default_value = "127.0.0.1")]
-    host: String,
-    #[arg(long, env = "SERVER_PORT", default_value = "8000")]
-    port: String,
-}
-
-impl ServerConfig {
-    pub fn get_addr(self) -> String {
-        format!("{}:{}", self.host, self.port)
     }
 }
 

@@ -1,50 +1,62 @@
-use axum::Router;
-use deadpool_postgres::Pool;
-use std::error::Error;
 use std::net::SocketAddr;
+
+use anyhow::anyhow;
+use axum::Router;
+use clap::Parser;
 use tokio::signal;
 
-use crate::config::ServerConfig;
+use crate::api::router::get_default_router;
 
-pub trait Closer {
-    fn close(&self);
+#[derive(Parser, Debug, Clone)]
+pub struct Config {
+    #[arg(long, env = "CLIENT_ID")]
+    pub client_id: String,
+    #[arg(long, env = "SERVER_HOST", default_value = "127.0.0.1")]
+    host: String,
+    #[arg(long, env = "SERVER_PORT", default_value = "8000")]
+    port: String,
 }
 
-impl Closer for Pool {
-    fn close(&self) {}
+impl Config {
+    pub fn get_addr(self) -> String {
+        format!("{}:{}", self.host, self.port)
+    }
 }
 
 pub struct Server {
     addr: String,
-    closers: Vec<Box<dyn Closer>>,
+    router: Option<Router>,
 }
 
 impl Server {
-    pub fn new(cfg: ServerConfig) -> Self {
+    pub fn new(cfg: Config) -> Self {
         Server {
             addr: cfg.get_addr(),
-            closers: Vec::new(),
+            router: None,
         }
     }
 
-    pub async fn run(&self, router: Router) -> Result<(), Box<dyn Error>> {
-        let listener = tokio::net::TcpListener::bind(self.addr.clone()).await?;
+    pub fn with_router(mut self, router: Router) -> Self {
+        self.router = Some(router);
+        self
+    }
+
+    pub async fn run(&self) -> anyhow::Result<()> {
+        let router = self.router.clone().unwrap_or_else(|| get_default_router());
+
+        let listener = tokio::net::TcpListener::bind(self.addr.clone())
+            .await
+            .map_err(|e| anyhow!("failed to bind to address: {}", e))?;
+
         axum::serve(
             listener,
             router.into_make_service_with_connect_info::<SocketAddr>(),
         )
         .with_graceful_shutdown(shutdown_signal())
-        .await?;
+        .await
+        .map_err(|e| anyhow!("failed to start server: {}", e))?;
 
         Ok(())
-    }
-
-    pub async fn shutdown(&self) {
-        self.closers.iter().for_each(|c| c.close());
-    }
-
-    pub fn add_closer(&mut self, closer: impl Closer + 'static) {
-        self.closers.push(Box::new(closer));
     }
 }
 
