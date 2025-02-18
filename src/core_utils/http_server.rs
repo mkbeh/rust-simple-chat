@@ -1,11 +1,11 @@
 use std::net::SocketAddr;
 
+use crate::api::healthz;
 use anyhow::anyhow;
+use axum::routing::get;
 use axum::Router;
 use clap::Parser;
 use tokio::signal;
-
-use crate::api::router::get_default_router;
 
 #[derive(Parser, Debug, Clone)]
 pub struct Config {
@@ -88,4 +88,10 @@ async fn shutdown_signal() {
         _ = terminate => {},
         _ = quit => {},
     }
+}
+
+pub fn get_default_router() -> Router {
+    Router::new()
+        .route("/readiness", get(healthz))
+        .route("/liveness", get(healthz))
 }

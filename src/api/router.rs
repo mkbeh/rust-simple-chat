@@ -6,10 +6,11 @@ use axum::Router;
 use tower::ServiceBuilder;
 
 use crate::api;
-use crate::api::{healthz, Handler};
+use crate::api::Handler;
+use crate::core_utils::http_server;
 
 pub fn get_router(handler: Arc<Handler>) -> Router {
-    let router = get_default_router().nest(
+    let router = http_server::get_default_router().nest(
         "/api/v1",
         Router::new()
             .route("/messages", post(api::v1::post_message_handler))
@@ -18,10 +19,4 @@ pub fn get_router(handler: Arc<Handler>) -> Router {
     );
 
     router
-}
-
-pub fn get_default_router() -> Router {
-    Router::new()
-        .route("/readiness", get(healthz))
-        .route("/liveness", get(healthz))
 }
