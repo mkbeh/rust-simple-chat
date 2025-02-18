@@ -1,15 +1,21 @@
 use std::sync::Arc;
 
+use axum::extract::Query;
+use axum::{Extension, Json};
+
+use crate::api::query;
 use crate::api::Handler;
 use crate::core_utils::errors::ServerError;
 use crate::entities;
-use axum::{Extension, Json};
 
 pub async fn list_messages_handler(
     Extension(state): Extension<Arc<Handler>>,
+    Query(params): Query<query::Pagination>,
 ) -> Result<Json<Vec<entities::message::MessageResponse>>, ServerError> {
-    // todo: add query params limit offset
-    let result = state.messages_repository.list_messages(0, 100).await;
+    let result = state
+        .messages_repository
+        .list_messages(params.get_offset(), params.get_limit())
+        .await;
 
     let db_messages = match result {
         Ok(db_messages) => db_messages,

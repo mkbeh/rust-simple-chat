@@ -48,6 +48,7 @@ impl MessagesRepository {
                        user_id         AS user_id,
                        posted_at       AS posted_at
                 FROM rust_simple_chat.messages
+                ORDER BY posted_at
                 OFFSET $1 LIMIT $2;
                 "#,
             )

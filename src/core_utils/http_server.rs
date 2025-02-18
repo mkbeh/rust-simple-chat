@@ -1,11 +1,12 @@
 use std::net::SocketAddr;
 
-use crate::api::healthz;
 use anyhow::anyhow;
 use axum::routing::get;
 use axum::Router;
 use clap::Parser;
 use tokio::signal;
+
+use crate::core_utils::healthz;
 
 #[derive(Parser, Debug, Clone)]
 pub struct Config {
