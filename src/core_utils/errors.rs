@@ -9,6 +9,8 @@ use serde::Serialize;
 use thiserror::Error;
 use validator::ValidationErrors;
 
+use crate::core_utils::jwt;
+
 #[derive(Error, Debug)]
 pub enum ServerError {
     #[error(transparent)]
@@ -16,15 +18,18 @@ pub enum ServerError {
     #[error(transparent)]
     ValidationError(#[from] ValidationErrors),
     #[error(transparent)]
+    AuthError(#[from] jwt::JwtError),
+    #[error(transparent)]
     DatabaseError(#[from] anyhow::Error),
 }
 
 impl ServerError {
     fn field_as_string(&self) -> String {
         match self {
-            ServerError::JsonRejection(_) => String::from("JSON_REJECTION_ERROR"),
-            ServerError::ValidationError(_) => String::from("VALIDATION_ERROR"),
-            ServerError::DatabaseError(_) => String::from("DATABASE_ERROR"),
+            ServerError::JsonRejection(_) => String::from("SERVER_JSON_REJECTION_ERROR"),
+            ServerError::ValidationError(_) => String::from("SERVER_VALIDATION_ERROR"),
+            ServerError::DatabaseError(_) => String::from("SERVER_DATABASE_ERROR"),
+            ServerError::AuthError(_) => String::from("SERVER"),
         }
     }
 }
@@ -52,7 +57,7 @@ impl IntoResponse for ServerError {
             error_type: String,
         }
 
-        let error_type = self.field_as_string();
+        let mut error_type = self.field_as_string();
 
         let (status, error_message) = match self {
             ServerError::JsonRejection(rejection) => (rejection.status(), rejection.body_text()),
@@ -61,6 +66,10 @@ impl IntoResponse for ServerError {
                 (StatusCode::UNPROCESSABLE_ENTITY, err_msg)
             }
             ServerError::DatabaseError(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
+            ServerError::AuthError(jwt_err) => {
+                error_type = format!("{}_{}", error_type, jwt_err.field_as_string());
+                (jwt_err.to_status_code(), jwt_err.to_message())
+            }
         };
 
         (

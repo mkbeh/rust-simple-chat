@@ -56,17 +56,25 @@ pub fn build_pool_from_config(
     conn_opts.user = Some(config.user.clone());
     conn_opts.password = Some(config.password.clone());
     conn_opts.dbname = Some(config.db.clone());
-    conn_opts.connect_timeout = Some(Duration::from(config.connect_timeout.into()));
+    conn_opts.connect_timeout = Some(Duration::from(
+        <humantime::Duration as Into<Duration>>::into(config.connect_timeout),
+    ));
     conn_opts.keepalives = Some(config.keepalives);
-    conn_opts.keepalives_idle = Some(Duration::from(config.keepalives_idle.into()));
+    conn_opts.keepalives_idle = Some(Duration::from(
+        <humantime::Duration as Into<Duration>>::into(config.keepalives_idle),
+    ));
     conn_opts.target_session_attrs = Some(config.get_target_session_attrs());
     conn_opts.manager = Some(deadpool_postgres::ManagerConfig {
         recycling_method: deadpool_postgres::RecyclingMethod::Fast,
     });
     conn_opts.pool = Some(deadpool_postgres::PoolConfig {
         timeouts: deadpool_postgres::Timeouts {
-            wait: Some(Duration::from(config.wait_timeout.into())),
-            create: Some(Duration::from(config.create_timeout.into())),
+            wait: Some(Duration::from(
+                <humantime::Duration as Into<Duration>>::into(config.wait_timeout),
+            )),
+            create: Some(Duration::from(
+                <humantime::Duration as Into<Duration>>::into(config.create_timeout),
+            )),
             ..Default::default()
         },
         max_size: config.max_connections,

@@ -6,9 +6,11 @@ use axum::{Extension, Json};
 use crate::api::query;
 use crate::api::Handler;
 use crate::core_utils::errors::ServerError;
+use crate::core_utils::jwt;
 use crate::entities;
 
 pub async fn list_messages_handler(
+    _: jwt::Claims,
     Extension(state): Extension<Arc<Handler>>,
     Query(params): Query<query::Pagination>,
 ) -> Result<Json<Vec<entities::message::MessageResponse>>, ServerError> {
