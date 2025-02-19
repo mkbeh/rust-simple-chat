@@ -13,7 +13,7 @@ path = "src/bin/worker/main.rs"
 
 [dependencies]
 axum = { version = "0.8.1", features = ["http1", "http2", "json", "macros"] }
-axum-extra = {version = "0.10.0", features = ["typed-header"]}
+axum-extra = { version = "0.10.0", features = ["typed-header"] }
 tokio = { version = "1.43.0", features = ["full"] }
 anyhow = { version = "1.0.95", default-features = false }
 serde = { version = "1.0.217", features = ["derive"] }
@@ -24,7 +24,9 @@ deadpool-postgres = { version = "0.14.1" }
 tokio-postgres = { version = "0.7.13", features = ["with-chrono-0_4"] }
 tokio-postgres-utils = { version = "0.2.0" }
 tower = { version = "0.5.2" }
-tower-http = {version = "0.6.2", features = ["cors"]}
+tower-http = { version = "0.6.2", features = ["cors"] }
 validator = { version = "0.20.0", features = ["derive"] }
 thiserror = { version = "2.0.11" }
-jsonwebtoken = {version = "9.3.1"}
+jsonwebtoken = { version = "9.3.1" }
+metrics-exporter-prometheus = { version = "0.16.2", default-features = false }
+metrics = { version = "0.24.1", default-features = false }
