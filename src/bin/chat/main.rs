@@ -11,8 +11,8 @@ async fn main() {
     core_utils::hooks::setup_panic_hook();
 
     let config = config::Config::parse();
-
     let mut ep = Entrypoint::new(config);
+
     match ep.bootstrap_server().await {
         Ok(_) => {
             ep.shutdown().await;
