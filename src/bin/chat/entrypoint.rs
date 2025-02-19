@@ -37,8 +37,8 @@ impl<'a> Entrypoint<'_> {
 
         self.closer.push(Box::new(move || pool.close()));
 
-        let srv = Server::new(self.config.server.clone());
-        srv.with_router(api::get_router(handler))
+        Server::new(self.config.server.clone())
+            .with_router(api::get_router(handler))
             .run()
             .await
             .map_err(|err| anyhow!("handling server error: {}", err))?;
