@@ -8,6 +8,7 @@ use entrypoint::Entrypoint;
 
 #[tokio::main]
 async fn main() {
+    core_utils::logger::setup_logger();
     core_utils::hooks::setup_panic_hook();
 
     let config = config::Config::parse();
@@ -20,7 +21,7 @@ async fn main() {
         }
         Err(e) => {
             ep.shutdown().await;
-            println!("Failed to start server: {}", e);
+            tracing::error!("Failed to start server: {}", e);
             std::process::exit(1);
         }
     }

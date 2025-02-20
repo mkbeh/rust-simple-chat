@@ -30,3 +30,5 @@ thiserror = { version = "2.0.11" }
 jsonwebtoken = { version = "9.3.1" }
 metrics-exporter-prometheus = { version = "0.16.2", default-features = false }
 metrics = { version = "0.24.1", default-features = false }
+tracing-subscriber = {version = "0.3.19", features = ["env-filter", "json"] }
+tracing = {version = "0.1.41"}

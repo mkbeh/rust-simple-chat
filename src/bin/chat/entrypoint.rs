@@ -1,13 +1,10 @@
 use std::sync::Arc;
 
 use anyhow::anyhow;
-
-use app::api;
-use app::config::Config;
-use app::core_utils::closer::Closer;
-use app::core_utils::http_server::Server;
-use app::core_utils::postgres_pool;
-use app::infra::repositories;
+use app::{
+    api, config::Config, core_utils::closer::Closer, core_utils::http_server::Server,
+    core_utils::postgres_pool, infra::repositories,
+};
 
 pub struct Entrypoint<'a> {
     config: Config,
@@ -23,8 +20,6 @@ impl<'a> Entrypoint<'_> {
     }
 
     pub async fn bootstrap_server(&mut self) -> anyhow::Result<()> {
-        // todo: init logger, tracer, etc
-
         let pool = postgres_pool::build_pool_from_config(
             self.config.server.client_id.clone(),
             self.config.postgres.clone(),
