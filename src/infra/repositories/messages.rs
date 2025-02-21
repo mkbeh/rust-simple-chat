@@ -12,7 +12,10 @@ impl MessagesRepository {
         Self { pool }
     }
 
-    pub async fn create_message(&self, msg: message::PostMessage) -> anyhow::Result<i64> {
+    pub async fn create_message(
+        &self,
+        msg: message::PostMessage,
+    ) -> anyhow::Result<i64, anyhow::Error> {
         let client = self.pool.get().await?;
         let stmt = client
             .prepare(
@@ -37,7 +40,7 @@ impl MessagesRepository {
         &self,
         offset: i64,
         limit: i64,
-    ) -> anyhow::Result<Vec<message::Message>> {
+    ) -> anyhow::Result<Vec<message::Message>, anyhow::Error> {
         let client = self.pool.get().await?;
         let stmt = client
             .prepare(

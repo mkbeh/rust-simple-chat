@@ -1,18 +1,22 @@
 use anyhow::anyhow;
+use axum::http::StatusCode;
 use axum::{
+    Router,
     extract::{MatchedPath, Request},
     middleware,
     middleware::Next,
     response::IntoResponse,
     routing::get,
-    Router,
 };
 use clap::Parser;
 use metrics_exporter_prometheus::{Matcher, PrometheusBuilder, PrometheusHandle};
-use std::{future::ready, net::SocketAddr, time::Instant};
+use std::{
+    borrow::Cow, error::Error as StdError, fmt, fmt::Display, future::ready, net::SocketAddr,
+    time::Instant,
+};
 use tokio::signal;
 
-use crate::core_utils::healthz;
+use crate::core_utils::errors::{ServerError, ServiceError};
 
 #[derive(Parser, Debug, Clone)]
 pub struct Config {
@@ -59,6 +63,7 @@ impl Server {
     pub async fn run(&self) -> anyhow::Result<()> {
         let app_router = self.router.clone().unwrap_or_else(|| get_default_router());
         let app_router = Self::add_metrics_middleware(app_router);
+        let app_router = Self::add_fallback_handlers(app_router);
         let app_server = self.bootstrap_server(self.addr.clone(), app_router);
 
         let metrics_router = get_metrics_router();
@@ -88,6 +93,12 @@ impl Server {
 
     fn add_metrics_middleware(router: Router) -> Router {
         router.route_layer(middleware::from_fn(track_metrics))
+    }
+
+    fn add_fallback_handlers(router: Router) -> Router {
+        router
+            .fallback(default_fallback)
+            .method_not_allowed_fallback(fallback_handler_405)
     }
 }
 
@@ -127,7 +138,21 @@ pub fn get_default_router() -> Router {
         .route("/liveness", get(healthz))
 }
 
-pub fn get_metrics_router() -> Router {
+async fn healthz() -> (StatusCode, Cow<'static, str>) {
+    (StatusCode::OK, Cow::from("OK"))
+}
+
+async fn default_fallback() -> impl IntoResponse {
+    tracing::debug!("default fallback");
+    ServerError::ServiceError(&FallbackError::MethodNotFound)
+}
+
+async fn fallback_handler_405() -> impl IntoResponse {
+    tracing::debug!("405 handler called");
+    ServerError::ServiceError(&FallbackError::MethodNotAllowed)
+}
+
+fn get_metrics_router() -> Router {
     let recorder_handle = setup_metrics_recorder();
     get_default_router().route("/metrics", get(move || ready(recorder_handle.render())))
 }
@@ -149,11 +174,12 @@ fn setup_metrics_recorder() -> PrometheusHandle {
 
 async fn track_metrics(req: Request, next: Next) -> impl IntoResponse {
     let start = Instant::now();
-    let path = if let Some(matched_path) = req.extensions().get::<MatchedPath>() {
-        matched_path.as_str().to_owned()
-    } else {
-        req.uri().path().to_owned()
+
+    let path = match req.extensions().get::<MatchedPath>() {
+        Some(matched_path) => matched_path.as_str().to_owned(),
+        _ => req.uri().path().to_owned(),
     };
+
     let method = req.method().clone();
 
     let response = next.run(req).await;
@@ -171,4 +197,41 @@ async fn track_metrics(req: Request, next: Next) -> impl IntoResponse {
     metrics::histogram!("http_requests_duration_seconds", &labels).record(latency);
 
     response
+}
+
+#[derive(Debug)]
+pub enum FallbackError {
+    MethodNotFound,
+    MethodNotAllowed,
+}
+
+impl Display for FallbackError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.message())
+    }
+}
+
+impl StdError for FallbackError {}
+
+impl ServiceError for FallbackError {
+    fn status(&self) -> StatusCode {
+        match self {
+            FallbackError::MethodNotFound => StatusCode::NOT_FOUND,
+            FallbackError::MethodNotAllowed => StatusCode::METHOD_NOT_ALLOWED,
+        }
+    }
+
+    fn message(&self) -> String {
+        match self {
+            FallbackError::MethodNotFound => String::from("method not found"),
+            FallbackError::MethodNotAllowed => String::from("method not allowed"),
+        }
+    }
+
+    fn field_as_string(&self) -> String {
+        match self {
+            FallbackError::MethodNotFound => String::from("METHOD_NOT_FOUND"),
+            FallbackError::MethodNotAllowed => String::from("METHOD_NOT_ALLOWED"),
+        }
+    }
 }

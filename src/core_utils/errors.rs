@@ -1,11 +1,10 @@
-use axum::extract::rejection::JsonRejection;
-use axum::extract::FromRequest;
-use axum::http::StatusCode;
-use axum::response::IntoResponse;
-use axum::response::Response;
-use axum::Json;
+use axum::{
+    Json, extract::FromRequest, extract::rejection::JsonRejection, http::StatusCode,
+    response::IntoResponse, response::Response,
+};
 use serde;
 use serde::Serialize;
+use std::{error::Error as StdError, fmt::Debug};
 use thiserror::Error;
 use validator::ValidationErrors;
 
@@ -15,12 +14,18 @@ use crate::core_utils::jwt;
 pub enum ServerError {
     #[error(transparent)]
     JsonRejection(#[from] JsonRejection),
+
     #[error(transparent)]
     ValidationError(#[from] ValidationErrors),
+
     #[error(transparent)]
     AuthError(#[from] jwt::JwtError),
+
     #[error(transparent)]
     DatabaseError(#[from] anyhow::Error),
+
+    #[error("xz")]
+    ServiceError(#[source] &'static dyn ServiceError),
 }
 
 impl ServerError {
@@ -29,7 +34,8 @@ impl ServerError {
             ServerError::JsonRejection(_) => String::from("SERVER_JSON_REJECTION_ERROR"),
             ServerError::ValidationError(_) => String::from("SERVER_VALIDATION_ERROR"),
             ServerError::DatabaseError(_) => String::from("SERVER_DATABASE_ERROR"),
-            ServerError::AuthError(_) => String::from("SERVER"),
+            ServerError::AuthError(_) => String::new(),
+            ServerError::ServiceError(_) => String::new(),
         }
     }
 }
@@ -65,11 +71,15 @@ impl IntoResponse for ServerError {
                 let err_msg = format!("[{self}]").replace('\n', ", ");
                 (StatusCode::UNPROCESSABLE_ENTITY, err_msg)
             }
-            ServerError::DatabaseError(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
             ServerError::AuthError(jwt_err) => {
-                error_type = format!("{}_{}", error_type, jwt_err.field_as_string());
+                error_type = format!("SERVER_{}", jwt_err.field_as_string());
                 (jwt_err.to_status_code(), jwt_err.to_message())
             }
+            ServerError::ServiceError(err) => {
+                error_type = err.field_as_string();
+                (err.status(), err.message())
+            }
+            ServerError::DatabaseError(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
         };
 
         (
@@ -81,4 +91,10 @@ impl IntoResponse for ServerError {
         )
             .into_response()
     }
+}
+
+pub trait ServiceError: Debug + StdError {
+    fn status(&self) -> StatusCode;
+    fn message(&self) -> String;
+    fn field_as_string(&self) -> String;
 }

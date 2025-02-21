@@ -1,15 +1,13 @@
 use std::sync::Arc;
 
+use axum::Router;
 use axum::http::{HeaderValue, Method};
 use axum::routing::{get, post};
-use axum::Router;
-use axum::{http, Extension};
+use axum::{Extension, http};
 use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;
 
-use crate::api;
-use crate::api::Handler;
-use crate::core_utils::http_server;
+use crate::{api, api::Handler, core_utils::http_server};
 
 pub fn get_router(handler: Arc<Handler>) -> Router {
     let router = http_server::get_default_router().nest(
