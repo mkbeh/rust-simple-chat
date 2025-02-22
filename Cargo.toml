@@ -23,12 +23,12 @@ humantime = { version = "2.1.0" }
 deadpool-postgres = { version = "0.14.1" }
 tokio-postgres = { version = "0.7.13", features = ["with-chrono-0_4"] }
 tokio-postgres-utils = { version = "0.2.0" }
-tower = { version = "0.5.2" }
+tower = { version = "0.5.2", features = ["timeout"] }
 tower-http = { version = "0.6.2", features = ["cors"] }
 validator = { version = "0.20.0", features = ["derive"] }
 thiserror = { version = "2.0.11" }
 jsonwebtoken = { version = "9.3.1" }
 metrics-exporter-prometheus = { version = "0.16.2", default-features = false }
 metrics = { version = "0.24.1", default-features = false }
-tracing-subscriber = {version = "0.3.19", features = ["env-filter", "json"] }
-tracing = {version = "0.1.41"}
+tracing-subscriber = { version = "0.3.19", features = ["env-filter", "json"] }
+tracing = { version = "0.1.41" }

@@ -1,4 +1,5 @@
 use anyhow::anyhow;
+use axum::body::HttpBody;
 use axum::http::StatusCode;
 use axum::{
     Router,
@@ -138,6 +139,11 @@ pub fn get_default_router() -> Router {
         .route("/liveness", get(healthz))
 }
 
+fn get_metrics_router() -> Router {
+    let recorder_handle = setup_metrics_recorder();
+    get_default_router().route("/metrics", get(move || ready(recorder_handle.render())))
+}
+
 async fn healthz() -> (StatusCode, Cow<'static, str>) {
     (StatusCode::OK, Cow::from("OK"))
 }
@@ -150,11 +156,6 @@ async fn default_fallback() -> impl IntoResponse {
 async fn fallback_handler_405() -> impl IntoResponse {
     tracing::debug!("405 handler called");
     ServerError::ServiceError(&FallbackError::MethodNotAllowed)
-}
-
-fn get_metrics_router() -> Router {
-    let recorder_handle = setup_metrics_recorder();
-    get_default_router().route("/metrics", get(move || ready(recorder_handle.render())))
 }
 
 fn setup_metrics_recorder() -> PrometheusHandle {
@@ -181,11 +182,13 @@ async fn track_metrics(req: Request, next: Next) -> impl IntoResponse {
     };
 
     let method = req.method().clone();
+    let req_body_size = req.body().size_hint().lower();
 
     let response = next.run(req).await;
 
     let latency = start.elapsed().as_secs_f64();
     let status = response.status().as_u16().to_string();
+    let resp_body_size = response.body().size_hint().lower();
 
     let labels = [
         ("method", method.to_string()),
@@ -195,6 +198,8 @@ async fn track_metrics(req: Request, next: Next) -> impl IntoResponse {
 
     metrics::counter!("http_requests_total", &labels).increment(1);
     metrics::histogram!("http_requests_duration_seconds", &labels).record(latency);
+    metrics::gauge!("http_request_size_bytes", &labels).increment(req_body_size as f64);
+    metrics::gauge!("http_response_size_bytes", &labels).increment(resp_body_size as f64);
 
     response
 }
