@@ -1,5 +1,5 @@
-pub fn setup_panic_hook() {
-    std::panic::set_hook(Box::new(|panic_info| {
+pub fn setup_panic_hook(with_failure: bool) {
+    std::panic::set_hook(Box::new(move |panic_info| {
         // If the panic has a source location, record it as structured fields.
         if let Some(location) = panic_info.location() {
             tracing::error!(
@@ -11,6 +11,9 @@ pub fn setup_panic_hook() {
         } else {
             tracing::error!(message = %panic_info);
         }
-        std::process::exit(1);
+
+        if with_failure {
+            std::process::exit(1);
+        }
     }))
 }

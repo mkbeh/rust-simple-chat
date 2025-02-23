@@ -1,23 +1,26 @@
 use anyhow::anyhow;
-use axum::body::HttpBody;
-use axum::http::StatusCode;
 use axum::{
-    Router,
-    extract::{MatchedPath, Request},
+    Router, http,
+    http::{HeaderName, HeaderValue, Method, StatusCode, header::AUTHORIZATION},
     middleware,
-    middleware::Next,
     response::IntoResponse,
     routing::get,
 };
 use clap::Parser;
-use metrics_exporter_prometheus::{Matcher, PrometheusBuilder, PrometheusHandle};
-use std::{
-    borrow::Cow, error::Error as StdError, fmt, fmt::Display, future::ready, net::SocketAddr,
-    time::Instant,
-};
+use std::{borrow::Cow, future::ready, iter::once, net::SocketAddr, time::Duration};
 use tokio::signal;
+use tower_http::{
+    catch_panic::CatchPanicLayer, compression::CompressionLayer, cors::CorsLayer,
+    propagate_header::PropagateHeaderLayer, sensitive_headers::SetSensitiveRequestHeadersLayer,
+    timeout::TimeoutLayer,
+};
 
-use crate::core_utils::errors::{ServerError, ServiceError};
+use crate::core_utils;
+use crate::core_utils::{
+    errors::ServerError,
+    http_server_errors::CommonServerErrors,
+    http_server_middlewares::{metrics_handler, panic_handler, setup_metrics_recorder},
+};
 
 #[derive(Parser, Debug, Clone)]
 pub struct Config {
@@ -29,6 +32,8 @@ pub struct Config {
     port: String,
     #[arg(long, env = "SERVER_METRICS_PORT", default_value = "9007")]
     metrics_port: String,
+    #[arg(long, env = "SERVER_REQUEST_TIMEOUT", default_value = "10s")]
+    request_timeout: humantime::Duration,
 }
 
 impl Config {
@@ -43,6 +48,7 @@ impl Config {
 
 pub struct Server {
     addr: String,
+    request_timeout: Duration,
     metrics_addr: String,
     router: Option<Router>,
 }
@@ -53,6 +59,7 @@ impl Server {
             addr: cfg.get_addr(),
             metrics_addr: cfg.get_metrics_addr(),
             router: None,
+            request_timeout: cfg.request_timeout.into(),
         }
     }
 
@@ -63,12 +70,14 @@ impl Server {
 
     pub async fn run(&self) -> anyhow::Result<()> {
         let app_router = self.router.clone().unwrap_or_else(|| get_default_router());
-        let app_router = Self::add_metrics_middleware(app_router);
-        let app_router = Self::add_fallback_handlers(app_router);
-        let app_server = self.bootstrap_server(self.addr.clone(), app_router);
+        let app_server = self.bootstrap_server(self.addr.clone(), self.setup_router(app_router));
 
         let metrics_router = get_metrics_router();
         let metrics_server = self.bootstrap_server(self.metrics_addr.clone(), metrics_router);
+
+        // disable failure in the custom panic hook when there is a panic,
+        // because we can't handle the panic in the panic middleware (exit(1) trouble)
+        core_utils::hooks::setup_panic_hook(false);
 
         tokio::try_join!(app_server, metrics_server)
             .map_err(|e| anyhow!("Failed to bootstrap server. Reason: {:?}", e))?;
@@ -92,13 +101,38 @@ impl Server {
         Ok(())
     }
 
-    fn add_metrics_middleware(router: Router) -> Router {
-        router.route_layer(middleware::from_fn(track_metrics))
-    }
-
-    fn add_fallback_handlers(router: Router) -> Router {
+    fn setup_router(&self, router: Router) -> Router {
         router
-            .fallback(default_fallback)
+            // Panic recovery handler
+            .layer(CatchPanicLayer::custom(panic_handler))
+            // Prometheus metrics tracker
+            .route_layer(middleware::from_fn(metrics_handler))
+            // Request timeout
+            .layer(TimeoutLayer::new(self.request_timeout))
+            // Compress responses
+            .layer(CompressionLayer::new())
+            // Mark the `Authorization` request header as sensitive so it doesn't show in logs
+            .layer(SetSensitiveRequestHeadersLayer::new(once(AUTHORIZATION)))
+            // Propagate headers from requests to responses
+            .layer(PropagateHeaderLayer::new(HeaderName::from_static(
+                "x-request-id",
+            )))
+            // Cors
+            .layer(
+                CorsLayer::new()
+                    .allow_origin("*".parse::<HeaderValue>().unwrap())
+                    .allow_methods([
+                        Method::GET,
+                        Method::POST,
+                        Method::DELETE,
+                        Method::OPTIONS,
+                        Method::PUT,
+                        Method::HEAD,
+                        Method::PATCH,
+                    ])
+                    .allow_headers([http::header::CONTENT_TYPE]),
+            )
+            .fallback(fallback_handler)
             .method_not_allowed_fallback(fallback_handler_405)
     }
 }
@@ -148,95 +182,12 @@ async fn healthz() -> (StatusCode, Cow<'static, str>) {
     (StatusCode::OK, Cow::from("OK"))
 }
 
-async fn default_fallback() -> impl IntoResponse {
+async fn fallback_handler() -> impl IntoResponse {
     tracing::debug!("default fallback");
-    ServerError::ServiceError(&FallbackError::MethodNotFound)
+    ServerError::ServiceError(&CommonServerErrors::MethodNotFound)
 }
 
 async fn fallback_handler_405() -> impl IntoResponse {
     tracing::debug!("405 handler called");
-    ServerError::ServiceError(&FallbackError::MethodNotAllowed)
-}
-
-fn setup_metrics_recorder() -> PrometheusHandle {
-    const EXPONENTIAL_SECONDS: &[f64] = &[
-        0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0,
-    ];
-
-    PrometheusBuilder::new()
-        .set_buckets_for_metric(
-            Matcher::Full("http_requests_duration_seconds".to_string()),
-            EXPONENTIAL_SECONDS,
-        )
-        .unwrap()
-        .install_recorder()
-        .unwrap()
-}
-
-async fn track_metrics(req: Request, next: Next) -> impl IntoResponse {
-    let start = Instant::now();
-
-    let path = match req.extensions().get::<MatchedPath>() {
-        Some(matched_path) => matched_path.as_str().to_owned(),
-        _ => req.uri().path().to_owned(),
-    };
-
-    let method = req.method().clone();
-    let req_body_size = req.body().size_hint().lower();
-
-    let response = next.run(req).await;
-
-    let latency = start.elapsed().as_secs_f64();
-    let status = response.status().as_u16().to_string();
-    let resp_body_size = response.body().size_hint().lower();
-
-    let labels = [
-        ("method", method.to_string()),
-        ("path", path),
-        ("status", status),
-    ];
-
-    metrics::counter!("http_requests_total", &labels).increment(1);
-    metrics::histogram!("http_requests_duration_seconds", &labels).record(latency);
-    metrics::gauge!("http_request_size_bytes", &labels).increment(req_body_size as f64);
-    metrics::gauge!("http_response_size_bytes", &labels).increment(resp_body_size as f64);
-
-    response
-}
-
-#[derive(Debug)]
-pub enum FallbackError {
-    MethodNotFound,
-    MethodNotAllowed,
-}
-
-impl Display for FallbackError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.message())
-    }
-}
-
-impl StdError for FallbackError {}
-
-impl ServiceError for FallbackError {
-    fn status(&self) -> StatusCode {
-        match self {
-            FallbackError::MethodNotFound => StatusCode::NOT_FOUND,
-            FallbackError::MethodNotAllowed => StatusCode::METHOD_NOT_ALLOWED,
-        }
-    }
-
-    fn message(&self) -> String {
-        match self {
-            FallbackError::MethodNotFound => String::from("method not found"),
-            FallbackError::MethodNotAllowed => String::from("method not allowed"),
-        }
-    }
-
-    fn field_as_string(&self) -> String {
-        match self {
-            FallbackError::MethodNotFound => String::from("METHOD_NOT_FOUND"),
-            FallbackError::MethodNotAllowed => String::from("METHOD_NOT_ALLOWED"),
-        }
-    }
+    ServerError::ServiceError(&CommonServerErrors::MethodNotAllowed)
 }

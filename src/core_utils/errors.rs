@@ -10,6 +10,12 @@ use validator::ValidationErrors;
 
 use crate::core_utils::jwt;
 
+pub trait ServiceError: Debug + StdError {
+    fn status(&self) -> StatusCode;
+    fn message(&self) -> String;
+    fn field_as_string(&self) -> String;
+}
+
 #[derive(Error, Debug)]
 pub enum ServerError {
     #[error(transparent)]
@@ -31,9 +37,9 @@ pub enum ServerError {
 impl ServerError {
     fn field_as_string(&self) -> String {
         match self {
-            ServerError::JsonRejection(_) => String::from("SERVER_JSON_REJECTION_ERROR"),
-            ServerError::ValidationError(_) => String::from("SERVER_VALIDATION_ERROR"),
-            ServerError::DatabaseError(_) => String::from("SERVER_DATABASE_ERROR"),
+            ServerError::JsonRejection(_) => String::from("JSON_REJECTION_ERROR"),
+            ServerError::ValidationError(_) => String::from("VALIDATION_ERROR"),
+            ServerError::DatabaseError(_) => String::from("DATABASE_ERROR"),
             ServerError::AuthError(_) => String::new(),
             ServerError::ServiceError(_) => String::new(),
         }
@@ -63,23 +69,32 @@ impl IntoResponse for ServerError {
             error_type: String,
         }
 
-        let mut error_type = self.field_as_string();
+        let (status, error_message, error_type) = match &self {
+            ServerError::JsonRejection(rejection) => (
+                rejection.status(),
+                rejection.body_text(),
+                self.field_as_string(),
+            ),
 
-        let (status, error_message) = match self {
-            ServerError::JsonRejection(rejection) => (rejection.status(), rejection.body_text()),
-            ServerError::ValidationError(_) => {
-                let err_msg = format!("[{self}]").replace('\n', ", ");
-                (StatusCode::UNPROCESSABLE_ENTITY, err_msg)
-            }
-            ServerError::AuthError(jwt_err) => {
-                error_type = format!("SERVER_{}", jwt_err.field_as_string());
-                (jwt_err.to_status_code(), jwt_err.to_message())
-            }
-            ServerError::ServiceError(err) => {
-                error_type = err.field_as_string();
-                (err.status(), err.message())
-            }
-            ServerError::DatabaseError(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
+            ServerError::ValidationError(_) => (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                format!("[{self}]").replace('\n', ", "),
+                self.field_as_string(),
+            ),
+
+            ServerError::AuthError(jwt_err) => (
+                jwt_err.to_status_code(),
+                jwt_err.to_message(),
+                jwt_err.field_as_string(),
+            ),
+
+            ServerError::ServiceError(err) => (err.status(), err.message(), err.field_as_string()),
+
+            ServerError::DatabaseError(err) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                err.to_string(),
+                self.field_as_string(),
+            ),
         };
 
         (
@@ -91,10 +106,4 @@ impl IntoResponse for ServerError {
         )
             .into_response()
     }
-}
-
-pub trait ServiceError: Debug + StdError {
-    fn status(&self) -> StatusCode;
-    fn message(&self) -> String;
-    fn field_as_string(&self) -> String;
 }

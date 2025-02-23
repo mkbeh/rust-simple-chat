@@ -1,7 +1,6 @@
-use std::sync::Arc;
-
 use axum::{Extension, Json};
 use chrono::Utc;
+use std::sync::Arc;
 use validator::Validate;
 
 use crate::api::Handler;
