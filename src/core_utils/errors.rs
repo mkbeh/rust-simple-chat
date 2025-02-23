@@ -30,7 +30,7 @@ pub enum ServerError {
     #[error(transparent)]
     DatabaseError(#[from] anyhow::Error),
 
-    #[error("xz")]
+    #[error("service error")]
     ServiceError(#[source] &'static dyn ServiceError),
 }
 
