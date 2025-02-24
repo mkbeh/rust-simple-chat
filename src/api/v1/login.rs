@@ -6,7 +6,18 @@ use crate::{
     entities,
 };
 
-pub async fn login() -> Result<Json<entities::auth::LoginResponse>, ServerError> {
+/// Login
+///
+/// Retrieve access token.
+#[utoipa::path(
+    post,
+    path = "/login",
+    tag = super::DOCS_AUTH_TAG,
+    responses(
+            (status = 200, description = "List all todos successfully", body = entities::auth::LoginResponse)
+    )
+)]
+pub async fn login_handler() -> Result<Json<entities::auth::LoginResponse>, ServerError> {
     const USER_ID: i32 = 123;
     const TOKEN_LIFETIME_SECS: i64 = 60;
 

@@ -15,6 +15,7 @@ use tower_http::{
     propagate_header::PropagateHeaderLayer, sensitive_headers::SetSensitiveRequestHeadersLayer,
     timeout::TimeoutLayer,
 };
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::{
     core_utils,
@@ -22,6 +23,7 @@ use crate::{
         errors::ServerError,
         http_server_errors::CommonServerErrors,
         http_server_middlewares::{metrics_handler, panic_handler, setup_metrics_recorder},
+        swagger,
     },
 };
 
@@ -53,7 +55,7 @@ pub struct Server {
     addr: String,
     request_timeout: Duration,
     metrics_addr: String,
-    router: Option<Router>,
+    router: Option<OpenApiRouter>,
 }
 
 impl Server {
@@ -66,17 +68,18 @@ impl Server {
         }
     }
 
-    pub fn with_router(mut self, router: Router) -> Self {
+    pub fn with_router(mut self, router: OpenApiRouter) -> Self {
         self.router = Some(router);
         self
     }
 
     pub async fn run(&self) -> anyhow::Result<()> {
-        let app_router = self.router.clone().unwrap_or_else(|| get_default_router());
-        let app_server = self.bootstrap_server(self.addr.clone(), self.setup_router(app_router));
+        let app_server = match self.router.clone() {
+            Some(router) => self.bootstrap_server(self.addr.clone(), self.setup_router(router)),
+            None => self.bootstrap_server(self.addr.clone(), Router::from(get_default_router())),
+        };
 
-        let metrics_router = get_metrics_router();
-        let metrics_server = self.bootstrap_server(self.metrics_addr.clone(), metrics_router);
+        let metrics_server = self.bootstrap_server(self.metrics_addr.clone(), get_metrics_router());
 
         // disable failure in the custom panic hook when there is a panic,
         // because we can't handle the panic in the panic middleware (exit(1) trouble)
@@ -104,8 +107,10 @@ impl Server {
         Ok(())
     }
 
-    fn setup_router(&self, router: Router) -> Router {
-        router
+    fn setup_router(&self, router: OpenApiRouter) -> Router {
+        let _router = swagger::get_openapi_router(router.merge(get_default_router()));
+
+        _router
             // Panic recovery handler
             .layer(CatchPanicLayer::custom(panic_handler))
             // Prometheus metrics tracker
@@ -170,18 +175,42 @@ async fn shutdown_signal() {
     }
 }
 
-pub fn get_default_router() -> Router {
-    Router::new()
-        .route("/readiness", get(healthz))
-        .route("/liveness", get(healthz))
+fn get_default_router() -> OpenApiRouter {
+    OpenApiRouter::new()
+        .routes(routes!(readiness))
+        .routes(routes!(liveness))
 }
 
 fn get_metrics_router() -> Router {
     let recorder_handle = setup_metrics_recorder();
-    get_default_router().route("/metrics", get(move || ready(recorder_handle.render())))
+    Router::from(
+        get_default_router().route("/metrics", get(move || ready(recorder_handle.render()))),
+    )
 }
 
-async fn healthz() -> (StatusCode, Cow<'static, str>) {
+/// readiness
+#[utoipa::path(
+    get,
+    path = "/readiness",
+    tag = "health",
+    responses(
+        (status = 200)
+    )
+)]
+async fn readiness() -> (StatusCode, Cow<'static, str>) {
+    (StatusCode::OK, Cow::from("OK"))
+}
+
+/// liveness
+#[utoipa::path(
+    get,
+    path = "/liveness",
+    tag = "health",
+    responses(
+        (status = 200)
+    )
+)]
+async fn liveness() -> (StatusCode, Cow<'static, str>) {
     (StatusCode::OK, Cow::from("OK"))
 }
 

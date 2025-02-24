@@ -13,6 +13,21 @@ use crate::{
     domain, entities,
 };
 
+/// Post message
+///
+/// Post message and save in storage.
+#[utoipa::path(
+    post,
+    path = "/messages",
+    tag = super::DOCS_MESSAGES_TAG,
+    security(
+        ("api_key" = [])
+    ),
+    request_body = entities::message::PostMessageRequest,
+    responses(
+            (status = 200, description = "", body = entities::message::PostMessageResponse)
+    )
+)]
 pub async fn post_message_handler(
     claims: jwt::Claims,
     Extension(state): Extension<Arc<Handler>>,

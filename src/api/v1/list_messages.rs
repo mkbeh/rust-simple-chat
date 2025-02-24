@@ -8,6 +8,23 @@ use crate::{
     entities,
 };
 
+/// List all messages
+///
+/// List all messages from storage.
+#[utoipa::path(
+    get,
+    path = "/messages",
+    tag = super::DOCS_MESSAGES_TAG,
+    security(
+        ("api_key" = [])
+    ),
+    params(
+        query::Pagination
+    ),
+    responses(
+        (status = 200, description = "List all todos successfully", body = [entities::message::MessageResponse])
+    )
+)]
 pub async fn list_messages_handler(
     _: jwt::Claims,
     Extension(state): Extension<Arc<Handler>>,

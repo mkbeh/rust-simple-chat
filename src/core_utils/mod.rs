@@ -7,3 +7,4 @@ mod http_server_middlewares;
 pub mod jwt;
 pub mod logger;
 pub mod postgres_pool;
+pub mod swagger;

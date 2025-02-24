@@ -1,11 +1,12 @@
 use std::{fmt, str::FromStr};
 
 use serde::{Deserialize, Deserializer, de};
+use utoipa::IntoParams;
 
 const DEFAULT_PAGINATION_OFFSET: i64 = 0;
 const DEFAULT_PAGINATION_LIMIT: i64 = 100;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, IntoParams)]
 #[allow(dead_code)]
 pub struct Pagination {
     #[serde(default, deserialize_with = "empty_string_as_none")]
