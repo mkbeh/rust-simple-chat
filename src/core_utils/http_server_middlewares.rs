@@ -1,3 +1,5 @@
+use std::{any::Any, time::Instant};
+
 use axum::{
     body::HttpBody,
     extract::{MatchedPath, Request},
@@ -6,7 +8,6 @@ use axum::{
 };
 use http::Response;
 use metrics_exporter_prometheus::{Matcher, PrometheusBuilder, PrometheusHandle};
-use std::{any::Any, time::Instant};
 
 use crate::core_utils::{errors::ServerError, http_server_errors::CommonServerErrors};
 

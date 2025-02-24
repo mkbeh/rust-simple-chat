@@ -1,6 +1,6 @@
+use std::{fmt, fmt::Display};
+
 use http::StatusCode;
-use std::fmt;
-use std::fmt::Display;
 use thiserror::Error;
 
 use crate::core_utils::errors::ServiceError;

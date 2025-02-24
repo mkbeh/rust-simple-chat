@@ -1,10 +1,10 @@
 use axum::Json;
 use chrono::{Duration, Utc};
 
-use crate::core_utils::errors::ServerError;
-use crate::core_utils::jwt;
-use crate::core_utils::jwt::Claims;
-use crate::entities;
+use crate::{
+    core_utils::{errors::ServerError, jwt, jwt::Claims},
+    entities,
+};
 
 pub async fn login() -> Result<Json<entities::auth::LoginResponse>, ServerError> {
     const USER_ID: i32 = 123;

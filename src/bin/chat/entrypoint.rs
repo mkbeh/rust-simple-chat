@@ -2,8 +2,10 @@ use std::sync::Arc;
 
 use anyhow::anyhow;
 use app::{
-    api, config::Config, core_utils::closer::Closer, core_utils::http_server::Server,
-    core_utils::postgres_pool, infra::repositories,
+    api,
+    config::Config,
+    core_utils::{closer::Closer, http_server::Server, postgres_pool},
+    infra::repositories,
 };
 
 pub struct Entrypoint<'a> {

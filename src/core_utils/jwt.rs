@@ -1,17 +1,17 @@
-use std::error::Error as StdError;
-use std::fmt::Display;
-use std::sync::LazyLock;
+use std::{error::Error as StdError, fmt::Display, sync::LazyLock};
 
-use axum::extract::FromRequestParts;
-use axum::http::request::Parts;
-use axum::http::StatusCode;
-use axum::RequestPartsExt;
-use axum_extra::{
-    headers::{authorization::Bearer, Authorization},
-    TypedHeader,
+use axum::{
+    RequestPartsExt,
+    extract::FromRequestParts,
+    http::{StatusCode, request::Parts},
 };
-use jsonwebtoken::errors::ErrorKind;
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use axum_extra::{
+    TypedHeader,
+    headers::{Authorization, authorization::Bearer},
+};
+use jsonwebtoken::{
+    DecodingKey, EncodingKey, Header, Validation, decode, encode, errors::ErrorKind,
+};
 use serde::{Deserialize, Serialize};
 
 use crate::core_utils::errors::ServerError;

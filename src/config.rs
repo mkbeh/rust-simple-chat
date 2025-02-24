@@ -1,7 +1,6 @@
 use clap::Parser;
 
-use crate::core_utils::http_server;
-use crate::core_utils::postgres_pool;
+use crate::core_utils::{http_server, postgres_pool};
 
 pub struct Config {
     pub server: http_server::Config,

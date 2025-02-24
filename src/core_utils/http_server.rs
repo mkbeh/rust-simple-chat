@@ -1,3 +1,5 @@
+use std::{borrow::Cow, future::ready, iter::once, net::SocketAddr, time::Duration};
+
 use anyhow::anyhow;
 use axum::{
     Router, http,
@@ -7,7 +9,6 @@ use axum::{
     routing::get,
 };
 use clap::Parser;
-use std::{borrow::Cow, future::ready, iter::once, net::SocketAddr, time::Duration};
 use tokio::signal;
 use tower_http::{
     catch_panic::CatchPanicLayer, compression::CompressionLayer, cors::CorsLayer,
@@ -15,11 +16,13 @@ use tower_http::{
     timeout::TimeoutLayer,
 };
 
-use crate::core_utils;
-use crate::core_utils::{
-    errors::ServerError,
-    http_server_errors::CommonServerErrors,
-    http_server_middlewares::{metrics_handler, panic_handler, setup_metrics_recorder},
+use crate::{
+    core_utils,
+    core_utils::{
+        errors::ServerError,
+        http_server_errors::CommonServerErrors,
+        http_server_middlewares::{metrics_handler, panic_handler, setup_metrics_recorder},
+    },
 };
 
 #[derive(Parser, Debug, Clone)]

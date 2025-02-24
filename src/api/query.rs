@@ -1,5 +1,6 @@
-use serde::{de, Deserialize, Deserializer};
 use std::{fmt, str::FromStr};
+
+use serde::{Deserialize, Deserializer, de};
 
 const DEFAULT_PAGINATION_OFFSET: i64 = 0;
 const DEFAULT_PAGINATION_LIMIT: i64 = 100;

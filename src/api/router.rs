@@ -1,9 +1,12 @@
-use crate::{api, api::Handler, core_utils::http_server};
-use axum::Extension;
-use axum::Router;
-use axum::routing::{get, post};
 use std::sync::Arc;
+
+use axum::{
+    Extension, Router,
+    routing::{get, post},
+};
 use tower::ServiceBuilder;
+
+use crate::{api, api::Handler, core_utils::http_server};
 
 pub fn get_router(handler: Arc<Handler>) -> Router {
     let router = http_server::get_default_router().nest(

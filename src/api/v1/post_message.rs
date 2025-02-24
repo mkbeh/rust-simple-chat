@@ -1,14 +1,17 @@
+use std::sync::Arc;
+
 use axum::{Extension, Json};
 use chrono::Utc;
-use std::sync::Arc;
 use validator::Validate;
 
-use crate::api::Handler;
-use crate::core_utils::errors::AppJson;
-use crate::core_utils::errors::ServerError;
-use crate::core_utils::jwt;
-use crate::domain;
-use crate::entities;
+use crate::{
+    api::Handler,
+    core_utils::{
+        errors::{AppJson, ServerError},
+        jwt,
+    },
+    domain, entities,
+};
 
 pub async fn post_message_handler(
     claims: jwt::Claims,

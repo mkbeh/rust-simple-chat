@@ -1,13 +1,12 @@
 use std::sync::Arc;
 
-use axum::extract::Query;
-use axum::{Extension, Json};
+use axum::{Extension, Json, extract::Query};
 
-use crate::api::query;
-use crate::api::Handler;
-use crate::core_utils::errors::ServerError;
-use crate::core_utils::jwt;
-use crate::entities;
+use crate::{
+    api::{Handler, query},
+    core_utils::{errors::ServerError, jwt},
+    entities,
+};
 
 pub async fn list_messages_handler(
     _: jwt::Claims,

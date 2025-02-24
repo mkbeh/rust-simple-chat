@@ -1,10 +1,12 @@
-use axum::{
-    Json, extract::FromRequest, extract::rejection::JsonRejection, http::StatusCode,
-    response::IntoResponse, response::Response,
-};
-use serde;
-use serde::Serialize;
 use std::{error::Error as StdError, fmt::Debug};
+
+use axum::{
+    Json,
+    extract::{FromRequest, rejection::JsonRejection},
+    http::StatusCode,
+    response::{IntoResponse, Response},
+};
+use serde::{self, Serialize};
 use thiserror::Error;
 use validator::ValidationErrors;
 
