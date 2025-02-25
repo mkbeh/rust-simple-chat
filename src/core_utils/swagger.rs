@@ -12,7 +12,10 @@ use utoipa_swagger_ui::SwaggerUi;
 pub fn get_openapi_router(router: OpenApiRouter) -> Router {
     #[derive(OpenApi)]
     #[openapi(
-        modifiers(&SecurityAddon)
+        modifiers(&SecurityAddon),
+        servers(
+            (url = "http://localhost:9000", description = "local")
+        )
     )]
 
     struct ApiDoc;
