@@ -85,6 +85,12 @@ impl Server {
         // because we can't handle the panic in the panic middleware (exit(1) trouble)
         core_utils::hooks::setup_panic_hook(false);
 
+        tracing::info!("Starting HTTP server on {}", self.addr.clone());
+        tracing::info!(
+            "Starting HTTP metrics server on {}",
+            self.metrics_addr.clone()
+        );
+
         tokio::try_join!(app_server, metrics_server)
             .map_err(|e| anyhow!("Failed to bootstrap server. Reason: {:?}", e))?;
 
