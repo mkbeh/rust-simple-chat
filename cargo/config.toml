@@ -1,0 +1,5 @@
+[rust]
+debuginfo-level = true
+
+[llvm]
+release-debuginfo = true

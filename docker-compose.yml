@@ -1,0 +1,55 @@
+version: '3'
+services:
+  postgres:
+    image: postgres:14.2-alpine
+    container_name: simple-chat-postgres
+    env_file:
+      - .env.template
+    ports:
+      - "54320:5432"
+    volumes:
+      - ./scripts/init_postgres.sh:/docker-entrypoint-initdb.d/init_postgres.sh
+      - simple-chat-pgdata:/var/lib/postgresql/data
+    networks:
+      - simple-chat-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  db-migrate:
+    image: migrate/migrate
+    env_file:
+      - .env.template
+    networks:
+      - simple-chat-network
+    volumes:
+      - ./migrations:/migrations
+    command: [ "-path", "/migrations", "-database",  "postgres://user:password@postgres:5432/rust-simple-chat?sslmode=disable&search_path=rust_simple_chat", "up" ]
+    depends_on:
+      postgres:
+        condition: service_healthy
+  
+  chat:
+    build:
+      context: .
+    container_name: chat-api
+    env_file:
+      - .env.template
+    ports:
+      - "9000:9000"
+    volumes:
+      - /data:/usr/src/app
+    networks:
+      - simple-chat-network
+    depends_on:
+      - db-migrate
+
+networks:
+  simple-chat-network:
+    driver: bridge
+
+volumes:
+  simple-chat-pgdata:
