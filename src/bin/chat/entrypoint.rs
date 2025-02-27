@@ -29,7 +29,7 @@ impl<'a> Entrypoint<'_> {
         .map_err(|err| anyhow!("failed to create pool: {:?}", err))?;
 
         let handler = Arc::new(api::Handler {
-            messages_repository: repositories::MessagesRepository::new(pool.clone()),
+            messages_repository: Arc::new(repositories::MessagesRepository::new(pool.clone())),
         });
 
         self.closer.push(Box::new(move || pool.close()));

@@ -1,6 +1,20 @@
+use async_trait::async_trait;
 use deadpool_postgres::Pool;
+use mockall::*;
 
 use crate::domain::message;
+
+#[async_trait]
+#[automock]
+pub trait MessagesRepositoryTrait: Send + Sync {
+    async fn create_message(&self, msg: message::PostMessage)
+    -> anyhow::Result<i64, anyhow::Error>;
+    async fn list_messages(
+        &self,
+        offset: i64,
+        limit: i64,
+    ) -> anyhow::Result<Vec<message::Message>, anyhow::Error>;
+}
 
 #[derive(Clone)]
 pub struct MessagesRepository {
@@ -11,8 +25,11 @@ impl MessagesRepository {
     pub fn new(pool: Pool) -> Self {
         Self { pool }
     }
+}
 
-    pub async fn create_message(
+#[async_trait]
+impl MessagesRepositoryTrait for MessagesRepository {
+    async fn create_message(
         &self,
         msg: message::PostMessage,
     ) -> anyhow::Result<i64, anyhow::Error> {
@@ -36,7 +53,7 @@ impl MessagesRepository {
         Ok(message_id)
     }
 
-    pub async fn list_messages(
+    async fn list_messages(
         &self,
         offset: i64,
         limit: i64,

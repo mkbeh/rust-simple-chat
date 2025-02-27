@@ -14,7 +14,7 @@ use crate::{
     path = "/login",
     tag = super::DOCS_AUTH_TAG,
     responses(
-            (status = 200, description = "List all todos successfully", body = entities::auth::LoginResponse)
+        (status = 200, description = "List all todos successfully", body = entities::auth::LoginResponse)
     )
 )]
 pub async fn login_handler() -> Result<Json<entities::auth::LoginResponse>, ServerError> {
@@ -28,4 +28,47 @@ pub async fn login_handler() -> Result<Json<entities::auth::LoginResponse>, Serv
     let token = jwt::encode_token(&claims)?;
 
     Ok(Json::from(entities::auth::LoginResponse { token }))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use axum::{Router, body::Body, http::Request};
+    use http_body_util::BodyExt;
+    use tower::ServiceExt;
+
+    use crate::{
+        api::{Handler, get_router},
+        entities,
+        infra::repositories,
+    };
+
+    #[tokio::test]
+    async fn test_login_handler_ok() {
+        let messages_repository = repositories::messages::MockMessagesRepositoryTrait::default();
+        let handler = Handler {
+            messages_repository: Arc::new(messages_repository),
+        };
+        let app = Router::from(get_router(Arc::from(handler)));
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri("/api/v1/login")
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), http::StatusCode::OK);
+
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        let login_response: entities::auth::LoginResponse = serde_json::from_slice(&body).unwrap();
+
+        assert!(login_response.token.len() > 0);
+    }
 }
