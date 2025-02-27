@@ -56,3 +56,58 @@ pub async fn post_message_handler(
 
     Ok(Json(entities::message::PostMessageResponse { message_id }))
 }
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use axum::{Router, body::Body, extract::Request};
+    use http_body_util::BodyExt;
+    use serde_json::{Value, json};
+    use tower::ServiceExt;
+
+    use crate::{
+        api,
+        api::{Handler, get_router},
+        infra::repositories,
+    };
+
+    #[tokio::test]
+    async fn test_post_message_handler() {
+        let mut messages_repository =
+            repositories::messages::MockMessagesRepositoryTrait::default();
+
+        messages_repository
+            .expect_create_message()
+            .withf(|x| x.content == "test-msg".to_string() && x.user_id == 123)
+            .once()
+            .returning(|_| Box::pin(async { Ok(1) }));
+
+        let handler = Handler {
+            messages_repository: Arc::new(messages_repository),
+        };
+        let app = Router::from(get_router(Arc::from(handler)));
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri("/api/v1/messages")
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .header(http::header::AUTHORIZATION, api::generate_test_token())
+                    .body(Body::from(
+                        serde_json::to_vec(&json!({ "text": "test-msg" })).unwrap(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), http::StatusCode::OK);
+
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        let body_json: Value = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(body_json, json!({"message_id": 1}));
+    }
+}

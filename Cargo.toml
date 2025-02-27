@@ -44,10 +44,15 @@ metrics-exporter-prometheus = { version = "0.16.2", default-features = false }
 metrics = { version = "0.24.1", default-features = false }
 tracing-subscriber = { version = "0.3.19", features = ["env-filter", "json"] }
 tracing = { version = "0.1.41" }
-http = "1.2.0"
+http = { version = "1.2.0" }
 utoipa = { version = "5.3.1", features = ["axum_extras", "chrono"] }
 utoipa-swagger-ui = { version = "9.0.0", features = ["axum", "reqwest"] }
 utoipa-axum = { version = "0.2.0" }
 utoipa-redoc = { version = "6.0.0", features = ["axum"] }
 utoipa-rapidoc = { version = "6.0.0", features = ["axum"] }
 utoipa-scalar = { version = "0.3.0", features = ["axum"] }
+async-trait = { version = "0.1.86" }
+mime = { version = "0.3.17" }
+serde_json = { version = "1.0.138" }
+mockall = { version = "0.13.1" }
+http-body-util = "0.1.2"

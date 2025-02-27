@@ -221,11 +221,9 @@ async fn liveness() -> (StatusCode, Cow<'static, str>) {
 }
 
 async fn fallback_handler() -> impl IntoResponse {
-    tracing::debug!("default fallback");
     ServerError::ServiceError(&CommonServerErrors::MethodNotFound)
 }
 
 async fn fallback_handler_405() -> impl IntoResponse {
-    tracing::debug!("405 handler called");
     ServerError::ServiceError(&CommonServerErrors::MethodNotAllowed)
 }
