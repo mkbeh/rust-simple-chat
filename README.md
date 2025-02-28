@@ -1,4 +1,4 @@
-# Rust Axum and Postgresql - microservice example
+# Rust Axum and Postgresql - microservice
 
 ![Platform](https://img.shields.io/badge/platform-linux-green.svg)
 [![GitHub license](https://img.shields.io/github/license/Naereen/StrapDown.js.svg)](https://github.com/Naereen/StrapDown.js/blob/master/LICENSE)
@@ -21,7 +21,7 @@ Backend stack using Rust , including interactive API documentation and many usef
 
 ### Interactive API documentation
 
-![img.png](assets/img/scalar_docs.png)
+![cut_output.gif](/assets/img/scalar.gif)
 
 ## How to use it
 
