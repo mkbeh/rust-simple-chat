@@ -13,10 +13,17 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
       - name: Build
         run: cargo build --verbose
+
       - name: Run tests
         env:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: cargo test --verbose
+
+      - name: Generate code coverage
+        run: |
+          cargo +nightly tarpaulin --verbose --all-features --workspace --timeout 120
