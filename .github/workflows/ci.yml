@@ -14,20 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      #      - name: Export variables from secret
-      #        run: |
-      #          ENV_JSON='${{ secrets.SETTINGS }}'
-      #          echo "$ENV_JSON" | jq -r 'to_entries[] | "\(.key)=\(.value)"' >> $GITHUB_ENV
       - name: Build
         run: cargo build --verbose
       - name: Run tests
-        #        env:
-        #          SECRETS_CONTEXT: ${{ toJson(secrets) }}
-        #        with:
-        #          secrets: ${{ toJSON(secrets) }}
-        #        env: ${{ secrets }}
         env:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
-        run: |
-          echo $JWT_SECRET
-          cargo test --verbose
+        run: cargo test --verbose
