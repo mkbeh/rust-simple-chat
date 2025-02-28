@@ -12,8 +12,8 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    environment: default
     steps:
+      - run: cat .env >> $GITHUB_ENV
       - uses: actions/checkout@v4
       - name: Build
         run: cargo build --verbose
