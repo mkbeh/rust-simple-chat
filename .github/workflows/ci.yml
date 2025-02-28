@@ -18,7 +18,7 @@ jobs:
 
       - name: Lint
         run: |
-          cargo clippy
+          cargo clippy -- -D warnings
 
   build:
     needs: [ "lint" ]
