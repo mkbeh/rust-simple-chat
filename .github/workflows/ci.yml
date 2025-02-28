@@ -13,6 +13,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - name: Export variables from secret
+        run: |
+          ENV_JSON='${{ secrets.APPSETTINGS_VARIABLES_FOR_TESTS }}'
+          echo "$ENV_JSON" | jq -r 'to_entries[] | "\(.key)=\(.value)"' >> $GITHUB_ENV
       - name: Build
         run: cargo build --verbose
       - name: Run tests
