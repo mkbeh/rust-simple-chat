@@ -16,8 +16,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - run: env
       - name: Build
         run: cargo build --verbose
       - name: Run tests
-        run: cargo test --verbose
+        run: |
+          echo $JWT_SECRET
+          cargo test --verbose
