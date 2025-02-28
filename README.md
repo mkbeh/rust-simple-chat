@@ -21,7 +21,7 @@ Backend stack using Rust , including interactive API documentation and many usef
 
 ### Interactive API documentation
 
-![img](/assets/img/scalar.gif)
+![img](/assets/img/scalar_docs.gif)
 
 ## How to use it
 
