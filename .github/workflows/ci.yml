@@ -12,6 +12,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    environment: default
     steps:
       - name: Export variables from secret
         run: |
@@ -20,8 +21,6 @@ jobs:
       - name: Build
         run: cargo build --verbose
       - name: Run tests
-        env:
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
           echo $JWT_SECRET
           cargo test --verbose
