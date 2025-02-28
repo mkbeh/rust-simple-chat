@@ -25,7 +25,9 @@ jobs:
         #          SECRETS_CONTEXT: ${{ toJson(secrets) }}
         #        with:
         #          secrets: ${{ toJSON(secrets) }}
-        env: ${{ secrets }}
+        #        env: ${{ secrets }}
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
           echo $JWT_SECRET
           cargo test --verbose
