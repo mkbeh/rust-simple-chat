@@ -21,8 +21,8 @@ jobs:
       - name: Build
         run: cargo build --verbose
       - name: Run tests
+        env:
+          SECRETS_CONTEXT: ${{ toJson(secrets) }}
         run: |
-          ENV_JSON='${{ secrets.SETTINGS }}'
-          echo "$ENV_JSON" | jq -r 'to_entries[] | "\(.key)=\(.value)"' >> $GITHUB_ENV
           echo $JWT_SECRET
           cargo test --verbose
