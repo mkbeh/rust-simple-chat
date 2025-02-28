@@ -85,15 +85,12 @@ mod tests {
                         DateTime::parse_from_rfc3339("2020-04-12T22:10:57+02:00").unwrap();
                     let posted_at_utc = posted_at.with_timezone(&Utc);
 
-                    let mut exp_messages = vec![];
-                    exp_messages.push(domain::message::Message {
+                    Ok(vec![domain::message::Message {
                         message_id: 1,
                         message_content: "test".to_string(),
                         user_id: 123,
                         posted_at: posted_at_utc,
-                    });
-
-                    Ok(exp_messages)
+                    }])
                 })
             });
 
