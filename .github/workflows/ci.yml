@@ -23,7 +23,6 @@ jobs:
   test:
     needs: [ "build" ]
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -41,7 +40,6 @@ jobs:
     container:
       image: xd009642/tarpaulin:develop-nightly
       options: --security-opt seccomp=unconfined
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
