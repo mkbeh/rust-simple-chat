@@ -21,8 +21,10 @@ jobs:
       - name: Build
         run: cargo build --verbose
       - name: Run tests
-        env:
-          SECRETS_CONTEXT: ${{ toJson(secrets) }}
+        #        env:
+        #          SECRETS_CONTEXT: ${{ toJson(secrets) }}
+        with:
+          secrets: ${{ toJSON(secrets) }}
         run: |
           echo $JWT_SECRET
           cargo test --verbose
