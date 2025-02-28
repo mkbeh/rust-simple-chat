@@ -13,7 +13,7 @@ pub struct Entrypoint<'a> {
     closer: Closer<'a>,
 }
 
-impl<'a> Entrypoint<'_> {
+impl Entrypoint<'_> {
     pub fn new(config: Config) -> Self {
         Self {
             config,

@@ -69,6 +69,6 @@ mod tests {
         let body = response.into_body().collect().await.unwrap().to_bytes();
         let login_response: entities::auth::LoginResponse = serde_json::from_slice(&body).unwrap();
 
-        assert!(login_response.token.len() > 0);
+        assert!(!login_response.token.is_empty());
     }
 }

@@ -52,16 +52,16 @@ pub fn build_pool_from_config(
     let mut conn_opts = deadpool_postgres::Config::new();
     conn_opts.application_name = Some(client_id);
     conn_opts.host = Some(config.host.clone());
-    conn_opts.port = Some(config.port.clone());
+    conn_opts.port = Some(config.port);
     conn_opts.user = Some(config.user.clone());
     conn_opts.password = Some(config.password.clone());
     conn_opts.dbname = Some(config.db.clone());
-    conn_opts.connect_timeout = Some(Duration::from(
-        <humantime::Duration as Into<Duration>>::into(config.connect_timeout),
+    conn_opts.connect_timeout = Some(<humantime::Duration as Into<Duration>>::into(
+        config.connect_timeout,
     ));
     conn_opts.keepalives = Some(config.keepalives);
-    conn_opts.keepalives_idle = Some(Duration::from(
-        <humantime::Duration as Into<Duration>>::into(config.keepalives_idle),
+    conn_opts.keepalives_idle = Some(<humantime::Duration as Into<Duration>>::into(
+        config.keepalives_idle,
     ));
     conn_opts.target_session_attrs = Some(config.get_target_session_attrs());
     conn_opts.manager = Some(deadpool_postgres::ManagerConfig {
@@ -69,11 +69,11 @@ pub fn build_pool_from_config(
     });
     conn_opts.pool = Some(deadpool_postgres::PoolConfig {
         timeouts: deadpool_postgres::Timeouts {
-            wait: Some(Duration::from(
-                <humantime::Duration as Into<Duration>>::into(config.wait_timeout),
+            wait: Some(<humantime::Duration as Into<Duration>>::into(
+                config.wait_timeout,
             )),
-            create: Some(Duration::from(
-                <humantime::Duration as Into<Duration>>::into(config.create_timeout),
+            create: Some(<humantime::Duration as Into<Duration>>::into(
+                config.create_timeout,
             )),
             ..Default::default()
         },

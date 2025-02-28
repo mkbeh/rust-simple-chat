@@ -16,11 +16,11 @@ pub struct Pagination {
 
 impl Pagination {
     pub fn get_offset(&self) -> i64 {
-        self.offset.unwrap_or_else(|| DEFAULT_PAGINATION_OFFSET)
+        self.offset.unwrap_or(DEFAULT_PAGINATION_OFFSET)
     }
 
     pub fn get_limit(&self) -> i64 {
-        self.limit.unwrap_or_else(|| DEFAULT_PAGINATION_LIMIT)
+        self.limit.unwrap_or(DEFAULT_PAGINATION_LIMIT)
     }
 }
 

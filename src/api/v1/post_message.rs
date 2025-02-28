@@ -79,7 +79,7 @@ mod tests {
 
         messages_repository
             .expect_create_message()
-            .withf(|x| x.content == "test-msg".to_string() && x.user_id == 123)
+            .withf(|x| x.content == *"test-msg" && x.user_id == 123)
             .once()
             .returning(|_| Box::pin(async { Ok(1) }));
 

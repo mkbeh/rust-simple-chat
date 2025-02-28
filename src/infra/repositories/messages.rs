@@ -76,9 +76,6 @@ impl MessagesRepositoryTrait for MessagesRepository {
 
         let rows = client.query(&stmt, &[&offset, &limit]).await?;
 
-        Ok(rows
-            .iter()
-            .map(|row| message::Message::try_from(row).unwrap())
-            .collect())
+        Ok(rows.iter().map(message::Message::from).collect())
     }
 }
