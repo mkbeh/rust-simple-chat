@@ -17,7 +17,6 @@ pub fn get_openapi_router(router: OpenApiRouter) -> Router {
             (url = "http://localhost:9000", description = "local")
         )
     )]
-
     struct ApiDoc;
 
     pub struct SecurityAddon;
@@ -42,7 +41,7 @@ pub fn get_openapi_router(router: OpenApiRouter) -> Router {
         .merge(router)
         .split_for_parts();
 
-    let router = router
+    router
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", api.clone()))
         .merge(Redoc::with_url("/redoc", api.clone()))
         // There is no need to create `RapiDoc::with_openapi` because the OpenApi is served
@@ -50,7 +49,5 @@ pub fn get_openapi_router(router: OpenApiRouter) -> Router {
         .merge(RapiDoc::new("/api-docs/openapi.json").path("/rapidoc"))
         // Alternative to above
         // .merge(RapiDoc::with_openapi("/api-docs/openapi2.json", api).path("/rapidoc"))
-        .merge(Scalar::with_url("/scalar", api));
-
-    router
+        .merge(Scalar::with_url("/scalar", api))
 }

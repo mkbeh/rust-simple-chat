@@ -82,7 +82,7 @@ mod tests {
             .returning(|_, _| {
                 Box::pin(async {
                     let posted_at =
-                        DateTime::parse_from_rfc3339("2020-04-12T22:10:57+02:00".as_ref()).unwrap();
+                        DateTime::parse_from_rfc3339("2020-04-12T22:10:57+02:00").unwrap();
                     let posted_at_utc = posted_at.with_timezone(&Utc);
 
                     let mut exp_messages = vec![];

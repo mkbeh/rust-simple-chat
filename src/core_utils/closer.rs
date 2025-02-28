@@ -4,6 +4,12 @@ pub struct Closer<'a> {
     closers: Vec<CloserFunc<'a>>,
 }
 
+impl Default for Closer<'_> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'a> Closer<'a> {
     pub fn new() -> Closer<'a> {
         Closer { closers: vec![] }
