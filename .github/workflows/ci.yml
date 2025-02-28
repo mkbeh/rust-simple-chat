@@ -24,6 +24,6 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: cargo test --verbose
 
-      - name: Generate code coverage
-        run: |
-          cargo +nightly tarpaulin --verbose --all-features --workspace --timeout 120
+#      - name: Generate code coverage
+#        run: |
+#          cargo +nightly tarpaulin --verbose --all-features --workspace --timeout 120
