@@ -2,6 +2,7 @@
 
 ![Platform](https://img.shields.io/badge/platform-linux-green.svg)
 [![GitHub license](https://img.shields.io/github/license/Naereen/StrapDown.js.svg)](https://github.com/Naereen/StrapDown.js/blob/master/LICENSE)
+![GitHub CI](https://github.com/mkbeh/rust-simple-chat/actions/workflows/ci.yml/badge.svg)
 
 Backend stack using Rust , including interactive API documentation and many useful features out of the box.
 
