@@ -45,7 +45,7 @@ impl Config {
     }
 }
 
-pub fn build_pool_from_config(
+pub async fn build_pool_from_config(
     client_id: String,
     config: Config,
 ) -> anyhow::Result<deadpool_postgres::Pool> {
@@ -86,7 +86,18 @@ pub fn build_pool_from_config(
             Some(deadpool_postgres::Runtime::Tokio1),
             tokio_postgres::NoTls,
         )
-        .map_err(|err| anyhow!("Failed connect to database {}", err))?;
+        .map_err(|err| anyhow!("Failed create postgres pool {}", err))?;
+
+    // ping db
+    let _ = pool.get().await.map_err(|err| {
+        anyhow!(
+            "Failed get postgres connection {} addr: {}:{} db:{}",
+            err,
+            config.host,
+            config.port,
+            config.db
+        )
+    })?;
 
     Ok(pool)
 }
