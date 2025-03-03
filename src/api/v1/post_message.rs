@@ -73,7 +73,7 @@ mod tests {
     };
 
     #[tokio::test]
-    async fn test_post_message_handler() {
+    async fn test_post_message_handler_ok() {
         let mut messages_repository =
             repositories::messages::MockMessagesRepositoryTrait::default();
 
