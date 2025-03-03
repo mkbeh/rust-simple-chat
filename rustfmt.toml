@@ -1,4 +1,4 @@
-edition = "2021"
+edition = "2024"
 group_imports = "StdExternalCrate"
 max_width = 100
 comment_width = 100
