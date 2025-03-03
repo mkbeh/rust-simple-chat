@@ -26,6 +26,7 @@ impl Entrypoint<'_> {
             self.config.server.client_id.clone(),
             self.config.postgres.clone(),
         )
+        .await
         .map_err(|err| anyhow!("failed to create pool: {:?}", err))?;
 
         let handler = Arc::new(api::Handler {
