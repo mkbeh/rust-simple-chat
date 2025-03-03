@@ -58,7 +58,18 @@ pub struct Server {
     router: Option<OpenApiRouter>,
 }
 
+macro_rules! server_method {
+    ($name:ident, $ty:ty) => {
+        pub fn $name(mut self, $name: $ty) -> Self {
+            self.$name = Some($name);
+            self
+        }
+    };
+}
+
 impl Server {
+    server_method!(router, OpenApiRouter);
+
     pub fn new(cfg: Config) -> Self {
         Server {
             addr: cfg.get_addr(),
@@ -66,11 +77,6 @@ impl Server {
             router: None,
             request_timeout: cfg.request_timeout.into(),
         }
-    }
-
-    pub fn with_router(mut self, router: OpenApiRouter) -> Self {
-        self.router = Some(router);
-        self
     }
 
     pub async fn run(&self) -> anyhow::Result<()> {
