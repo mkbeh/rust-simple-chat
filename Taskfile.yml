@@ -1,0 +1,53 @@
+version: 3
+
+vars:
+  RUST_VER: "1.85.0"
+  RUST_IMAGE: "rust:{{.RUST_VER}}-slim"
+  ENV_FILE_PATH: "{{.PWD}}/.env.template"
+
+dotenv: [ '.env.template' ]
+
+tasks:
+  run:
+    desc: "Full cycle"
+    deps:
+      - lint
+      - test
+
+  lint:
+    desc: "lint"
+    cmds:
+      - docker run --rm
+        -u $(id -u):$(id -g)
+        -v {{.PWD}}:/src
+        -w /src
+        {{.RUST_IMAGE}}
+        cargo clippy -- -D warnings
+
+  test:
+    desc: "test"
+    cmds:
+      - docker run --rm
+        --env-file {{.ENV_FILE_PATH}}
+        -u $(id -u):$(id -g)
+        -v {{.PWD}}:/src
+        -w /src
+        {{.RUST_IMAGE}}
+        cargo test
+
+  coverage:
+    desc: "coverage"
+    cmds:
+      - docker run --rm
+        --env-file {{.ENV_FILE_PATH}}
+        -u $(id -u):$(id -g)
+        -v {{.PWD}}:/src
+        -w /src
+        --security-opt seccomp=unconfined
+        xd009642/tarpaulin:develop-nightly
+        cargo +nightly tarpaulin --all-features --workspace --timeout 120
+
+  bench:
+    desc: "bench"
+    cmds:
+      - cargo bench
