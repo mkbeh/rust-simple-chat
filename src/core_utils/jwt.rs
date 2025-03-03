@@ -11,6 +11,7 @@ use axum_extra::{
 };
 use jsonwebtoken::{
     DecodingKey, EncodingKey, Header, Validation, decode, encode, errors::ErrorKind,
+    get_current_timestamp,
 };
 use serde::{Deserialize, Serialize};
 
@@ -35,6 +36,10 @@ impl Keys {
     }
 }
 
+pub fn expiry(secs_valid_for: u64) -> u64 {
+    get_current_timestamp() + secs_valid_for
+}
+
 pub fn encode_token(claims: &Claims) -> Result<String, JwtError> {
     encode(&Header::default(), &claims, &KEYS.encoding).map_err(|_| JwtError::TokenCreation)
 }
@@ -42,7 +47,7 @@ pub fn encode_token(claims: &Claims) -> Result<String, JwtError> {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
     pub sub: String,
-    pub exp: usize,
+    pub exp: u64,
 }
 
 impl Claims {
