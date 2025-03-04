@@ -9,7 +9,7 @@ use std::{
     sync::Arc,
 };
 
-use app::{api::Handler, infra::repositories};
+use app::{api::State, infra::repositories};
 use axum::{Extension, Router, routing::get};
 use tower::ServiceBuilder;
 
@@ -22,7 +22,7 @@ fn main() {
         ensure_rewrk_is_installed();
     }
 
-    let handler = Handler {
+    let handler = State {
         messages_repository: Arc::new(
             repositories::messages::MockMessagesRepositoryTrait::default(),
         ),

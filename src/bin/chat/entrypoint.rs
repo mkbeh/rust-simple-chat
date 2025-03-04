@@ -29,14 +29,16 @@ impl Entrypoint<'_> {
         .await
         .map_err(|err| anyhow!("failed to create pool: {:?}", err))?;
 
-        let handler = Arc::new(api::Handler {
+        let state = Arc::new(api::State {
             messages_repository: Arc::new(repositories::MessagesRepository::new(pool.clone())),
         });
 
-        self.closer.push(Box::new(move || pool.close()));
+        self.closer.push(Box::new(move || pool.clone().close()));
+
+        let api_router = api::ApiRouter::new().state(state.clone()).build();
 
         Server::new(self.config.server.clone())
-            .router(api::get_router(handler))
+            .router(api_router)
             .run()
             .await
             .map_err(|err| anyhow!("handling server error: {}", err))?;

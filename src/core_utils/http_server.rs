@@ -58,17 +58,8 @@ pub struct Server {
     router: Option<OpenApiRouter>,
 }
 
-macro_rules! server_method {
-    ($name:ident, $ty:ty) => {
-        pub fn $name(mut self, $name: $ty) -> Self {
-            self.$name = Some($name);
-            self
-        }
-    };
-}
-
 impl Server {
-    server_method!(router, OpenApiRouter);
+    crate::self_method!(router, OpenApiRouter);
 
     pub fn new(cfg: Config) -> Self {
         Server {

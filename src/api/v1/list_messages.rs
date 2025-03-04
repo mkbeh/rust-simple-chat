@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::{Extension, Json, extract::Query};
 
 use crate::{
-    api::{Handler, query},
+    api::{State, query},
     core_utils::{errors::ServerError, jwt},
     entities,
 };
@@ -27,7 +27,7 @@ use crate::{
 )]
 pub async fn list_messages_handler(
     _: jwt::Claims,
-    Extension(state): Extension<Arc<Handler>>,
+    Extension(state): Extension<Arc<State>>,
     Query(params): Query<query::Pagination>,
 ) -> Result<Json<Vec<entities::message::MessageResponse>>, ServerError> {
     let result = state
@@ -65,7 +65,7 @@ mod tests {
 
     use crate::{
         api,
-        api::{Handler, get_router},
+        api::{ApiRouter, State},
         domain,
         infra::repositories,
     };
@@ -94,10 +94,10 @@ mod tests {
                 })
             });
 
-        let handler = Handler {
+        let state = State {
             messages_repository: Arc::new(messages_repository),
         };
-        let app = Router::from(get_router(Arc::from(handler)));
+        let app = Router::from(ApiRouter::new().state(Arc::from(state)).build());
 
         let response = app
             .oneshot(

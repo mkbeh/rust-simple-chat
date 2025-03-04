@@ -6,5 +6,6 @@ mod http_server_errors;
 mod http_server_middlewares;
 pub mod jwt;
 pub mod logger;
+pub mod macro_utils;
 pub mod postgres_pool;
 pub mod swagger;
