@@ -38,7 +38,7 @@ mod tests {
     use tower::ServiceExt;
 
     use crate::{
-        api::{Handler, get_router},
+        api::{ApiRouter, State},
         entities,
         infra::repositories,
     };
@@ -46,10 +46,10 @@ mod tests {
     #[tokio::test]
     async fn test_login_handler_ok() {
         let messages_repository = repositories::messages::MockMessagesRepositoryTrait::default();
-        let handler = Handler {
+        let state = State {
             messages_repository: Arc::new(messages_repository),
         };
-        let app = Router::from(get_router(Arc::from(handler)));
+        let app = Router::from(ApiRouter::new().state(Arc::from(state)).build());
 
         let response = app
             .oneshot(

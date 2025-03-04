@@ -5,7 +5,7 @@ use chrono::Utc;
 use validator::Validate;
 
 use crate::{
-    api::Handler,
+    api::State,
     core_utils::{
         errors::{AppJson, ServerError},
         jwt,
@@ -30,7 +30,7 @@ use crate::{
 )]
 pub async fn post_message_handler(
     claims: jwt::Claims,
-    Extension(state): Extension<Arc<Handler>>,
+    Extension(state): Extension<Arc<State>>,
     AppJson(payload): AppJson<entities::message::PostMessageRequest>,
 ) -> Result<Json<entities::message::PostMessageResponse>, ServerError> {
     match payload.validate() {
@@ -68,7 +68,7 @@ mod tests {
 
     use crate::{
         api,
-        api::{Handler, get_router},
+        api::{ApiRouter, State},
         infra::repositories,
     };
 
@@ -83,10 +83,10 @@ mod tests {
             .once()
             .returning(|_| Box::pin(async { Ok(1) }));
 
-        let handler = Handler {
+        let state = State {
             messages_repository: Arc::new(messages_repository),
         };
-        let app = Router::from(get_router(Arc::from(handler)));
+        let app = Router::from(ApiRouter::new().state(Arc::from(state)).build());
 
         let response = app
             .oneshot(
