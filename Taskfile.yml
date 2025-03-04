@@ -5,7 +5,7 @@ vars:
   RUST_IMAGE: "rust:{{.RUST_VER}}-slim"
   ENV_FILE_PATH: "{{.PWD}}/.env.template"
 
-dotenv: [ '.env.template' ]
+dotenv: [ '{{.ENV_FILE_PATH}}' ]
 
 tasks:
   run:
