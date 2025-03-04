@@ -5,7 +5,7 @@ pub fn setup_logger() {
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
                 format!(
-                    "{}=debug,tower_http=debug,axum::rejection=trace",
+                    "{}=debug,tower_http=debug,axum::rejection=trace,tokio_postgres=error",
                     env!("CARGO_CRATE_NAME")
                 )
                 .into()
