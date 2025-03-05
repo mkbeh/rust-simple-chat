@@ -71,20 +71,21 @@ impl Server {
     }
 
     pub async fn run(&self) -> anyhow::Result<()> {
-        let app_server = match self.router.clone() {
-            Some(router) => self.bootstrap_server(self.addr.clone(), self.setup_router(router)),
-            None => self.bootstrap_server(self.addr.clone(), Router::from(get_default_router())),
+        let app_router = match self.router.clone() {
+            Some(router) => self.setup_router(router),
+            None => Router::from(get_default_router()),
         };
 
+        let app_server = self.bootstrap_server(self.addr.clone(), app_router);
         let metrics_server = self.bootstrap_server(self.metrics_addr.clone(), get_metrics_router());
 
         // disable failure in the custom panic hook when there is a panic,
         // because we can't handle the panic in the panic middleware (exit(1) trouble)
         core_utils::hooks::setup_panic_hook(false);
 
-        tracing::info!("Starting HTTP server on {}", self.addr.clone());
         tracing::info!(
-            "Starting HTTP metrics server on {}",
+            "Starting servers: application={}, metrics={}",
+            self.addr.clone(),
             self.metrics_addr.clone()
         );
 
