@@ -45,12 +45,9 @@ impl Config {
     }
 }
 
-pub async fn build_pool_from_config(
-    client_id: String,
-    config: Config,
-) -> anyhow::Result<deadpool_postgres::Pool> {
+pub async fn build_pool_from_config(config: Config) -> anyhow::Result<deadpool_postgres::Pool> {
     let mut conn_opts = deadpool_postgres::Config::new();
-    conn_opts.application_name = Some(client_id);
+    conn_opts.application_name = Some(env!("CARGO_PKG_NAME").to_string());
     conn_opts.host = Some(config.host.clone());
     conn_opts.port = Some(config.port);
     conn_opts.user = Some(config.user.clone());

@@ -17,20 +17,15 @@ use tower_http::{
 };
 use utoipa_axum::{router::OpenApiRouter, routes};
 
-use crate::{
-    core_utils,
-    core_utils::{
-        errors::ServerError,
-        http_server_errors::CommonServerErrors,
-        http_server_middlewares::{metrics_handler, panic_handler, setup_metrics_recorder},
-        swagger,
-    },
+use crate::core_utils::{
+    errors::ServerError,
+    http_server_errors::CommonServerErrors,
+    http_server_middlewares::{metrics_handler, panic_handler, setup_metrics_recorder},
+    swagger,
 };
 
 #[derive(Parser, Debug, Clone)]
 pub struct Config {
-    #[arg(long, env = "CLIENT_ID")]
-    pub client_id: String,
     #[arg(long, env = "SERVER_HOST", default_value = "127.0.0.1")]
     host: String,
     #[arg(long, env = "SERVER_PORT", default_value = "9000")]
@@ -81,7 +76,7 @@ impl Server {
 
         // disable failure in the custom panic hook when there is a panic,
         // because we can't handle the panic in the panic middleware (exit(1) trouble)
-        core_utils::hooks::setup_panic_hook(false);
+        setup_panic_hook();
 
         tracing::info!(
             "Starting servers: application={}, metrics={}",
@@ -224,4 +219,20 @@ async fn fallback_handler() -> impl IntoResponse {
 
 async fn fallback_handler_405() -> impl IntoResponse {
     ServerError::ServiceError(&CommonServerErrors::MethodNotAllowed)
+}
+
+fn setup_panic_hook() {
+    std::panic::set_hook(Box::new(move |panic_info| {
+        // If the panic has a source location, record it as structured fields.
+        if let Some(location) = panic_info.location() {
+            tracing::error!(
+                message = %panic_info,
+                panic.file = location.file(),
+                panic.line = location.line(),
+                panic.column = location.column(),
+            );
+        } else {
+            tracing::error!(message = %panic_info);
+        }
+    }))
 }

@@ -2,11 +2,13 @@
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```ignore
+/// use rust_simple_chat::self_method;
+///
 /// struct Foo;
 ///
 /// impl Foo {
-///     crate::self_method!(name, String);
+///     self_method!(name, String);
 /// }
 /// ```
 #[macro_export]
