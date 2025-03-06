@@ -39,7 +39,6 @@ impl Observability {
     }
 
     pub fn unset(&self) {
-        tracing::info!("shutting duwn tracer");
         let _ = self.tracer_provider.shutdown().map_err(|err| {
             tracing::error!("Failed to shutdown tracer: {:?}", err);
         });
@@ -114,6 +113,6 @@ pub fn span_ok(span: &Span) {
 }
 
 pub fn span_error(span: &Span, description: String) {
-    span.record("otel.status_code", "OK");
+    span.record("otel.status_code", "ERROR");
     span.record("otel.status_message", description);
 }

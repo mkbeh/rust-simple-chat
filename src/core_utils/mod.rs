@@ -9,3 +9,5 @@ pub mod macro_utils;
 pub mod observability;
 pub mod postgres_pool;
 pub mod swagger;
+
+pub use observability::Observability;
