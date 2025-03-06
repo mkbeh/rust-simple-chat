@@ -7,6 +7,7 @@ use opentelemetry_sdk::{
     propagation::TraceContextPropagator,
     trace::{Sampler, SdkTracerProvider},
 };
+use tracing::Span;
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, prelude::*, util::SubscriberInitExt};
 
 const DEFAULT_OTEL_SAMPLING_RATIO: &str = "1.0";
@@ -87,6 +88,7 @@ fn get_otel_filter() -> EnvFilter {
                 .parse()
                 .unwrap(),
         )
+        .add_directive("axum=off".parse().unwrap())
         .add_directive("hyper=off".parse().unwrap())
         .add_directive("opentelemetry=off".parse().unwrap())
         .add_directive("tonic=off".parse().unwrap())
@@ -101,8 +103,17 @@ fn get_tracing_filter() -> EnvFilter {
                 .parse()
                 .unwrap(),
         )
-        .add_directive("tower_http=debug".parse().unwrap())
+        .add_directive("tower_http=error".parse().unwrap())
         .add_directive("axum::rejection=trace".parse().unwrap())
         .add_directive("tokio_postgres=error".parse().unwrap())
         .add_directive("opentelemetry=off".parse().unwrap())
+}
+
+pub fn span_ok(span: &Span) {
+    span.record("otel.status_code", "OK");
+}
+
+pub fn span_error(span: &Span, description: String) {
+    span.record("otel.status_code", "OK");
+    span.record("otel.status_message", description);
 }

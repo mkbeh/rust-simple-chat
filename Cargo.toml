@@ -21,6 +21,7 @@ harness = false
 
 [dependencies]
 axum = { version = "0.8.1", features = ["http1", "http2", "json", "macros"] }
+axum-core = { version = "0.5.0" }
 axum-extra = { version = "0.10.0", features = ["typed-header"] }
 tokio = { version = "1.43.0", features = ["full"] }
 anyhow = { version = "1.0.95", default-features = false }

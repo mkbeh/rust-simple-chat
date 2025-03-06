@@ -1,8 +1,11 @@
-use std::{borrow::Cow, future::ready, iter::once, net::SocketAddr, time::Duration};
+use std::{borrow::Cow, fmt::Debug, future::ready, iter::once, net::SocketAddr, time::Duration};
 
 use anyhow::anyhow;
 use axum::{
-    Router, http,
+    Router,
+    body::{Body, HttpBody},
+    extract::MatchedPath,
+    http,
     http::{HeaderName, HeaderValue, Method, StatusCode, header::AUTHORIZATION},
     middleware,
     response::IntoResponse,
@@ -11,16 +14,18 @@ use axum::{
 use clap::Parser;
 use tokio::signal;
 use tower_http::{
-    catch_panic::CatchPanicLayer, compression::CompressionLayer, cors::CorsLayer,
-    propagate_header::PropagateHeaderLayer, sensitive_headers::SetSensitiveRequestHeadersLayer,
-    timeout::TimeoutLayer,
+    catch_panic::CatchPanicLayer, classify::ServerErrorsFailureClass,
+    compression::CompressionLayer, cors::CorsLayer, propagate_header::PropagateHeaderLayer,
+    sensitive_headers::SetSensitiveRequestHeadersLayer, timeout::TimeoutLayer, trace::TraceLayer,
 };
+use tracing::Span;
 use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::core_utils::{
     errors::ServerError,
     http_server_errors::CommonServerErrors,
     http_server_middlewares::{metrics_handler, panic_handler, setup_metrics_recorder},
+    observability::{span_error, span_ok},
     swagger,
 };
 
@@ -114,6 +119,58 @@ impl Server {
             .layer(CatchPanicLayer::custom(panic_handler))
             // Prometheus metrics tracker
             .route_layer(middleware::from_fn(metrics_handler))
+            // Tracing
+            .layer(
+                TraceLayer::new_for_http()
+                    .make_span_with(|request: &axum_core::extract::Request<Body>| {
+                        let matched_path = request
+                            .extensions()
+                            .get::<MatchedPath>()
+                            .map(MatchedPath::as_str);
+
+                        tracing::info_span!(
+                            "http_request",
+                            otel.kind = "server",
+                            otel.status_code = tracing::field::Empty,
+                            otel.status_message = tracing::field::Empty,
+                            http.method = ?request.method(),
+                            http.uri = ?request.uri(),
+                            http.path = matched_path,
+                            http.status_code = tracing::field::Empty,
+                            http.request_size = request.body().size_hint().lower(),
+                            http.response_size = tracing::field::Empty,
+                            http.request_headers = ?request.headers(),
+                        )
+                    })
+                    .on_response(
+                        |response: &axum_core::response::Response<Body>,
+                         _latency: Duration,
+                         span: &Span| {
+                            span.record(
+                                "http.status_code",
+                                tracing::field::display(response.status()),
+                            );
+                            span.record(
+                                "http.response_size",
+                                tracing::field::display(response.body().size_hint().lower()),
+                            );
+
+                            match response.status().as_u16() {
+                                0..=399 => {
+                                    span_ok(span);
+                                }
+                                _ => {
+                                    span_error(span, "received error response".to_string());
+                                }
+                            }
+                        },
+                    )
+                    .on_failure(
+                        |error: ServerErrorsFailureClass, _latency: Duration, span: &Span| {
+                            span_error(span, error.to_string());
+                        },
+                    ),
+            )
             // Request timeout
             .layer(TimeoutLayer::new(self.request_timeout))
             // Compress responses
@@ -125,20 +182,7 @@ impl Server {
                 "x-request-id",
             )))
             // Cors
-            .layer(
-                CorsLayer::new()
-                    .allow_origin("*".parse::<HeaderValue>().unwrap())
-                    .allow_methods([
-                        Method::GET,
-                        Method::POST,
-                        Method::DELETE,
-                        Method::OPTIONS,
-                        Method::PUT,
-                        Method::HEAD,
-                        Method::PATCH,
-                    ])
-                    .allow_headers([http::header::CONTENT_TYPE]),
-            )
+            .layer(init_cors_layer())
             .fallback(fallback_handler)
             .method_not_allowed_fallback(fallback_handler_405)
     }
@@ -235,4 +279,19 @@ fn setup_panic_hook() {
             tracing::error!(message = %panic_info);
         }
     }))
+}
+
+fn init_cors_layer() -> CorsLayer {
+    CorsLayer::new()
+        .allow_origin("*".parse::<HeaderValue>().unwrap())
+        .allow_methods([
+            Method::GET,
+            Method::POST,
+            Method::DELETE,
+            Method::OPTIONS,
+            Method::PUT,
+            Method::HEAD,
+            Method::PATCH,
+        ])
+        .allow_headers([http::header::CONTENT_TYPE])
 }
