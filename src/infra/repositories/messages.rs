@@ -60,7 +60,7 @@ impl MessagesRepositoryTrait for MessagesRepository {
     ) -> anyhow::Result<Vec<message::Message>, anyhow::Error> {
         let client = self.pool.get().await?;
         let stmt = client
-            .prepare(
+            .prepare_cached(
                 // language=postgresql
                 r#"
                 SELECT message_id      AS message_id,

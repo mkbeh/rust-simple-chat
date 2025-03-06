@@ -6,12 +6,9 @@ use std::{
     future::IntoFuture,
     io::BufRead,
     process::{Command, Stdio},
-    sync::Arc,
 };
 
-use app::{api::State, infra::repositories};
-use axum::{Extension, Router, routing::get};
-use tower::ServiceBuilder;
+use axum::{Router, routing::post};
 
 use crate::app::api;
 
@@ -22,17 +19,10 @@ fn main() {
         ensure_rewrk_is_installed();
     }
 
-    let handler = State {
-        messages_repository: Arc::new(
-            repositories::messages::MockMessagesRepositoryTrait::default(),
-        ),
-    };
-
-    benchmark("login").path("/login").method("post").run(|| {
-        Router::new()
-            .route("/login", get(api::v1::login::login_handler))
-            .layer(ServiceBuilder::new().layer(Extension(handler)))
-    });
+    benchmark("login")
+        .path("/login")
+        .method("post")
+        .run(|| Router::new().route("/login", post(api::v1::login::login_handler)));
 }
 
 fn benchmark(name: &'static str) -> BenchmarkBuilder {

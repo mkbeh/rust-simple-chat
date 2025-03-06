@@ -15,8 +15,13 @@ path = "src/bin/chat/main.rs"
 name = "worker"
 path = "src/bin/worker/main.rs"
 
+[[bench]]
+name = "benches"
+harness = false
+
 [dependencies]
 axum = { version = "0.8.1", features = ["http1", "http2", "json", "macros"] }
+axum-core = { version = "0.5.0" }
 axum-extra = { version = "0.10.0", features = ["typed-header"] }
 tokio = { version = "1.43.0", features = ["full"] }
 anyhow = { version = "1.0.95", default-features = false }
@@ -56,7 +61,7 @@ mime = { version = "0.3.17" }
 serde_json = { version = "1.0.138" }
 mockall = { version = "0.13.1" }
 http-body-util = "0.1.2"
-
-[[bench]]
-name = "benches"
-harness = false
+opentelemetry = { version = "0.28.0", features = ["trace", "internal-logs"] }
+opentelemetry-otlp = { version = "0.28.0", features = ["trace"] }
+opentelemetry_sdk = { version = "0.28.0", features = ["rt-tokio"] }
+tracing-opentelemetry = { version = "0.29.0" }

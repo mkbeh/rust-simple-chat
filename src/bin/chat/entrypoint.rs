@@ -4,6 +4,7 @@ use anyhow::anyhow;
 use app::{
     api,
     config::Config,
+    core_utils,
     core_utils::{closer::Closer, http_server::Server, postgres_pool},
     infra::repositories,
 };
@@ -22,12 +23,12 @@ impl Entrypoint<'_> {
     }
 
     pub async fn bootstrap_server(&mut self) -> anyhow::Result<()> {
-        let pool = postgres_pool::build_pool_from_config(
-            self.config.server.client_id.clone(),
-            self.config.postgres.clone(),
-        )
-        .await
-        .map_err(|err| anyhow!("failed to create pool: {:?}", err))?;
+        let observability = core_utils::observability::Observability::setup();
+        self.closer.push(Box::new(move || observability.unset()));
+
+        let pool = postgres_pool::build_pool_from_config(self.config.postgres.clone())
+            .await
+            .map_err(|err| anyhow!("failed to create pool: {:?}", err))?;
 
         let state = Arc::new(api::State {
             messages_repository: Arc::new(repositories::MessagesRepository::new(pool.clone())),

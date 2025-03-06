@@ -16,7 +16,7 @@ impl<'a> Closer<'a> {
     }
 
     pub fn push(&mut self, callback: CloserFunc<'a>) {
-        self.closers.push(Box::new(callback));
+        self.closers.push(callback);
     }
 
     pub fn close(&mut self) {

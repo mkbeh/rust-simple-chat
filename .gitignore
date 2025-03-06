@@ -34,3 +34,6 @@ Cargo.lock
 # ide
 .vscode
 .idea
+
+# env
+/.env
