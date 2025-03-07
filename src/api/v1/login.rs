@@ -2,7 +2,7 @@ use axum::Json;
 
 use crate::{
     entities,
-    libs::{errors::ServerError, jwt, jwt::Claims},
+    libs::{http::errors::ServerError, jwt, jwt::Claims},
 };
 
 /// Login

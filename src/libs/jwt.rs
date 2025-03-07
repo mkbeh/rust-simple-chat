@@ -15,7 +15,7 @@ use jsonwebtoken::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::libs::errors::ServerError;
+use crate::libs::http::errors::ServerError;
 
 static KEYS: LazyLock<Keys> = LazyLock::new(|| {
     let secret = std::env::var("JWT_SECRET").expect("env var JWT_SECRET must be set");

@@ -1,49 +1,111 @@
-use std::{fmt, fmt::Display};
+use std::{error::Error as StdError, fmt::Debug};
 
-use http::StatusCode;
+use axum::{
+    Json,
+    extract::{FromRequest, rejection::JsonRejection},
+    http::StatusCode,
+    response::{IntoResponse, Response},
+};
+use serde::{self, Serialize};
 use thiserror::Error;
+use validator::ValidationErrors;
 
-use crate::libs::errors::ServiceError;
+use crate::libs::jwt;
 
-const UNHANDLED_ERROR: &str = "UNHANDLED_ERROR";
-const METHOD_NOT_FOUND: &str = "METHOD_NOT_FOUND";
-const METHOD_NOT_ALLOWED: &str = "METHOD_NOT_ALLOWED";
-
-#[derive(Debug, Error)]
-pub enum CommonServerErrors {
-    Panic,
-    MethodNotFound,
-    MethodNotAllowed,
+pub trait ServiceError: Debug + StdError {
+    fn status(&self) -> StatusCode;
+    fn message(&self) -> String;
+    fn field_as_string(&self) -> String;
 }
 
-impl Display for CommonServerErrors {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.message())
-    }
+#[derive(Error, Debug)]
+pub enum ServerError {
+    #[error(transparent)]
+    JsonRejection(#[from] JsonRejection),
+
+    #[error(transparent)]
+    ValidationError(#[from] ValidationErrors),
+
+    #[error(transparent)]
+    AuthError(#[from] jwt::JwtError),
+
+    #[error(transparent)]
+    DatabaseError(#[from] anyhow::Error),
+
+    #[error("service error")]
+    ServiceError(#[source] &'static dyn ServiceError),
 }
 
-impl ServiceError for CommonServerErrors {
-    fn status(&self) -> StatusCode {
-        match self {
-            CommonServerErrors::Panic => StatusCode::INTERNAL_SERVER_ERROR,
-            CommonServerErrors::MethodNotFound => StatusCode::NOT_FOUND,
-            CommonServerErrors::MethodNotAllowed => StatusCode::METHOD_NOT_ALLOWED,
-        }
-    }
-
-    fn message(&self) -> String {
-        match self {
-            CommonServerErrors::Panic => "unhandled error".to_string(),
-            CommonServerErrors::MethodNotFound => "method not found".to_string(),
-            CommonServerErrors::MethodNotAllowed => "method not allowed".to_string(),
-        }
-    }
-
+impl ServerError {
     fn field_as_string(&self) -> String {
         match self {
-            CommonServerErrors::Panic => UNHANDLED_ERROR.to_string(),
-            CommonServerErrors::MethodNotFound => METHOD_NOT_FOUND.to_string(),
-            CommonServerErrors::MethodNotAllowed => METHOD_NOT_ALLOWED.to_string(),
+            ServerError::JsonRejection(_) => String::from("JSON_REJECTION_ERROR"),
+            ServerError::ValidationError(_) => String::from("VALIDATION_ERROR"),
+            ServerError::DatabaseError(_) => String::from("DATABASE_ERROR"),
+            ServerError::AuthError(_) => String::new(),
+            ServerError::ServiceError(_) => String::new(),
         }
+    }
+}
+
+#[derive(FromRequest)]
+#[from_request(via(axum::Json), rejection(ServerError))]
+pub struct AppJson<T>(pub T);
+
+impl<T> IntoResponse for AppJson<T>
+where
+    for<'a> axum::Json<&'a T>: IntoResponse,
+{
+    fn into_response(self) -> axum::response::Response {
+        axum::Json(&self.0).into_response()
+    }
+}
+
+impl IntoResponse for ServerError {
+    fn into_response(self) -> Response {
+        #[derive(Serialize)]
+        struct ErrorResponse {
+            #[serde(rename = "message")]
+            error_message: String,
+            #[serde(rename = "type")]
+            error_type: String,
+        }
+
+        let (status, error_message, error_type) = match &self {
+            ServerError::JsonRejection(rejection) => (
+                rejection.status(),
+                rejection.body_text(),
+                self.field_as_string(),
+            ),
+
+            ServerError::ValidationError(_) => (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                format!("[{self}]").replace('\n', ", "),
+                self.field_as_string(),
+            ),
+
+            ServerError::AuthError(jwt_err) => (
+                jwt_err.to_status_code(),
+                jwt_err.to_message(),
+                jwt_err.field_as_string(),
+            ),
+
+            ServerError::ServiceError(err) => (err.status(), err.message(), err.field_as_string()),
+
+            ServerError::DatabaseError(err) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                err.to_string(),
+                self.field_as_string(),
+            ),
+        };
+
+        (
+            status,
+            Json(ErrorResponse {
+                error_message,
+                error_type,
+            }),
+        )
+            .into_response()
     }
 }

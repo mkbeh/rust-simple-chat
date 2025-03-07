@@ -8,7 +8,7 @@ use crate::{
     api::State,
     domain, entities,
     libs::{
-        errors::{AppJson, ServerError},
+        http::errors::{AppJson, ServerError},
         jwt,
     },
 };
