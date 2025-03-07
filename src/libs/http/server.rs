@@ -33,6 +33,7 @@ use utoipa_axum::{router::OpenApiRouter, routes};
 use crate::libs::{
     http::{
         errors::{ServerError, ServiceError},
+        extractors as http_utils,
         middlewares::{metrics_handler, panic_handler, setup_metrics_recorder},
         swagger,
     },
@@ -144,11 +145,12 @@ impl Server {
                             otel.status_code = tracing::field::Empty,
                             otel.status_message = tracing::field::Empty,
                             http.method = ?request.method(),
-                            http.uri = ?request.uri(),
                             http.path = matched_path,
+                            http.query_params = request.uri().query(),
                             http.status_code = tracing::field::Empty,
                             http.request_size = request.body().size_hint().lower(),
                             http.response_size = tracing::field::Empty,
+                            user_agent = http_utils::user_agent(request),
                             http.request_headers = ?request.headers(),
                         )
                     })
