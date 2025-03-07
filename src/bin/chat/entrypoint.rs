@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{default::Default, sync::Arc};
 
 use anyhow::anyhow;
 use app::{
@@ -12,13 +12,15 @@ use app::{
 pub struct Entrypoint<'a> {
     config: Config,
     closer: Closer<'a>,
+    pool: Option<deadpool_postgres::Pool>,
 }
 
 impl Entrypoint<'_> {
     pub fn new(config: Config) -> Self {
         Self {
             config,
-            closer: Closer::new(),
+            pool: None,
+            closer: Default::default(),
         }
     }
 
@@ -30,12 +32,14 @@ impl Entrypoint<'_> {
             .await
             .map_err(|err| anyhow!("failed to create pool: {:?}", err))?;
 
-        let state = Arc::new(api::State {
-            messages_repository: Arc::new(repositories::MessagesRepository::new(pool.clone())),
-        });
-
+        self.pool = Some(pool.clone());
         self.closer.push(Box::new(move || pool.clone().close()));
 
+        let messages_repository = repositories::MessagesRepository::new(self.pool.clone().unwrap());
+
+        let state = Arc::new(api::State {
+            messages_repository: Arc::new(messages_repository),
+        });
         let api_router = api::ApiRouter::new().state(state.clone()).build();
 
         Server::new(self.config.server.clone())

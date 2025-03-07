@@ -1,4 +1,4 @@
-type CloserFunc<'a> = Box<dyn FnMut() + 'a>;
+type CloserFunc<'a> = Box<dyn Fn() + 'a>;
 
 pub struct Closer<'a> {
     closers: Vec<CloserFunc<'a>>,
