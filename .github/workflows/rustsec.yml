@@ -1,14 +1,18 @@
 name: Security audit
 
 on:
-  push:
-    paths:
-      - '**/Cargo.toml'
-      - '**/Cargo.lock'
+  #  push:
+  #    paths:
+  #      - '**/Cargo.toml'
+  #      - '**/Cargo.lock'
   workflow_run:
     workflows: [ "CI" ]
     types:
       - requested
+    push:
+      paths:
+        - '**/Cargo.toml'
+        - '**/Cargo.lock'
 
 jobs:
   security_audit:
