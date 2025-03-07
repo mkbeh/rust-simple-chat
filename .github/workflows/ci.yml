@@ -61,9 +61,10 @@ jobs:
         run: |
           cargo +nightly tarpaulin --verbose --all-features --workspace --timeout 120
 
-#  security_audit:
-#    needs: [ "build" ]
-#    name: security audit
+  security_audit:
+    needs: [ "build" ]
+    name: security audit
+    uses: ./.github/workflows/security_audit.yml
 #    runs-on: ubuntu-latest
 #    steps:
 #      - uses: actions/checkout@v4
