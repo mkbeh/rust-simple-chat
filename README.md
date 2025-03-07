@@ -19,6 +19,8 @@ Backend stack using Rust , including interactive API documentation and many usef
 * [utoipa](https://docs.rs/utoipa/latest/utoipa/) - provides auto-generated OpenAPI documentation for Rust REST APIs
 * [tracing](https://docs.rs/tracing/latest/tracing/) - a scoped, structured logging and diagnostics system
 * [opentelemetry](https://docs.rs/opentelemetry/latest/opentelemetry/) - implements the API component of OpenTelemetry
+* [mockall](https://docs.rs/mockall/latest/mockall/) - provides tools to create mock versions of almost any trait or
+  struct. They can be used in unit tests as a stand-in for the real object
 
 ### Interactive API documentation
 
