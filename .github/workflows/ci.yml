@@ -64,10 +64,10 @@ jobs:
   security_audit:
     needs: [ "build" ]
     name: security audit
-    #    uses: ./.github/workflows/rustsec.yml
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: rustsec/audit-check@v2.0.0
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+    uses: ./.github/workflows/rustsec.yml
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v4
+#      - uses: rustsec/audit-check@v2.0.0
+#        with:
+#          token: ${{ secrets.GITHUB_TOKEN }}
