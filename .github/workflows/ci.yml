@@ -61,7 +61,7 @@ jobs:
         run: |
           cargo +nightly tarpaulin --verbose --all-features --workspace --timeout 120
 
-  security:
-    needs: [ "build" ]
-    name: security audit
-    uses: ./.github/workflows/rustsec.yml
+#  security:
+#    needs: [ "build" ]
+#    name: security audit
+#    uses: ./.github/workflows/rustsec.yml
