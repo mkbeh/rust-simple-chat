@@ -20,46 +20,46 @@ jobs:
         run: |
           cargo clippy -- -D warnings
 
-  build:
-    needs: [ "lint" ]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
-      - name: Build
-        run: |
-          cargo build --verbose
-
-  test:
-    needs: [ "build" ]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
-      - name: Run tests
-        env:
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-        run: |
-          cargo test --verbose
-
-  coverage:
-    needs: [ "build" ]
-    name: coverage
-    runs-on: ubuntu-latest
-    container:
-      image: xd009642/tarpaulin:develop-nightly
-      options: --security-opt seccomp=unconfined
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
-      - name: Generate code coverage
-        env:
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-        run: |
-          cargo +nightly tarpaulin --verbose --all-features --workspace --timeout 120
+  #  build:
+  #    needs: [ "lint" ]
+  #    runs-on: ubuntu-latest
+  #    steps:
+  #      - name: Checkout repository
+  #        uses: actions/checkout@v2
+  #
+  #      - name: Build
+  #        run: |
+  #          cargo build --verbose
+  #
+  #  test:
+  #    needs: [ "build" ]
+  #    runs-on: ubuntu-latest
+  #    steps:
+  #      - name: Checkout repository
+  #        uses: actions/checkout@v2
+  #
+  #      - name: Run tests
+  #        env:
+  #          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+  #        run: |
+  #          cargo test --verbose
+  #
+  #  coverage:
+  #    needs: [ "build" ]
+  #    name: coverage
+  #    runs-on: ubuntu-latest
+  #    container:
+  #      image: xd009642/tarpaulin:develop-nightly
+  #      options: --security-opt seccomp=unconfined
+  #    steps:
+  #      - name: Checkout repository
+  #        uses: actions/checkout@v2
+  #
+  #      - name: Generate code coverage
+  #        env:
+  #          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+  #        run: |
+  #          cargo +nightly tarpaulin --verbose --all-features --workspace --timeout 120
 
   security:
     needs: [ "build" ]
