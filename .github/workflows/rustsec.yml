@@ -4,7 +4,7 @@ on:
     paths:
       - '**/Cargo.toml'
       - '**/Cargo.lock'
-  workflow_run:
+  workflow_call:
     workflows: [ "CI" ]
     types:
       - completed
