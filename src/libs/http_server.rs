@@ -21,7 +21,7 @@ use tower_http::{
 use tracing::Span;
 use utoipa_axum::{router::OpenApiRouter, routes};
 
-use crate::core_utils::{
+use crate::libs::{
     errors::ServerError,
     http_server_errors::CommonServerErrors,
     http_server_middlewares::{metrics_handler, panic_handler, setup_metrics_recorder},

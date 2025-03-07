@@ -3,7 +3,7 @@ use std::{fmt, fmt::Display};
 use http::StatusCode;
 use thiserror::Error;
 
-use crate::core_utils::errors::ServiceError;
+use crate::libs::errors::ServiceError;
 
 const UNHANDLED_ERROR: &str = "UNHANDLED_ERROR";
 const METHOD_NOT_FOUND: &str = "METHOD_NOT_FOUND";

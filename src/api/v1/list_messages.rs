@@ -4,8 +4,8 @@ use axum::{Extension, Json, extract::Query};
 
 use crate::{
     api::{State, query},
-    core_utils::{errors::ServerError, jwt},
     entities,
+    libs::{errors::ServerError, jwt},
 };
 
 /// List all messages

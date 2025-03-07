@@ -4,7 +4,7 @@ pub mod state;
 pub mod v1;
 
 pub use self::{router::ApiRouter, state::State};
-use crate::core_utils::jwt;
+use crate::libs::jwt;
 
 pub fn generate_test_token() -> String {
     let token = jwt::encode_token(&jwt::Claims {

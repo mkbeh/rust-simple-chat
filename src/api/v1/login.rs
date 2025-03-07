@@ -1,8 +1,8 @@
 use axum::Json;
 
 use crate::{
-    core_utils::{errors::ServerError, jwt, jwt::Claims},
     entities,
+    libs::{errors::ServerError, jwt, jwt::Claims},
 };
 
 /// Login
