@@ -59,7 +59,7 @@ http://localhost:9000/scalar
 
 http://localhost:9000/rapidoc
 
-### Metrics
+### Prometheus
 
 http://localhost:9007/metrics
 
