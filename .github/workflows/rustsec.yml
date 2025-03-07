@@ -7,12 +7,12 @@ on:
   #      - '**/Cargo.lock'
   workflow_call:
     workflows: [ "CI" ]
-    #    types:
-    #      - requested
-    push:
-      paths:
-        - '**/Cargo.toml'
-        - '**/Cargo.lock'
+    types:
+      - requested
+#    push:
+#      paths:
+#        - '**/Cargo.toml'
+#        - '**/Cargo.lock'
 
 jobs:
   security_audit:
