@@ -4,9 +4,9 @@ use anyhow::anyhow;
 use app::{
     api,
     config::Config,
-    core_utils,
-    core_utils::{closer::Closer, http_server::Server, postgres_pool},
     infra::repositories,
+    libs,
+    libs::{closer::Closer, http::Server, postgres_pool},
 };
 
 pub struct Entrypoint<'a> {
@@ -23,7 +23,7 @@ impl Entrypoint<'_> {
     }
 
     pub async fn bootstrap_server(&mut self) -> anyhow::Result<()> {
-        let observability = core_utils::Observability::setup();
+        let observability = libs::Observability::setup();
         self.closer.push(Box::new(move || observability.unset()));
 
         let pool = postgres_pool::build_pool_from_config(self.config.postgres.clone())

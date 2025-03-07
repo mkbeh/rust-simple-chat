@@ -6,11 +6,11 @@ use validator::Validate;
 
 use crate::{
     api::State,
-    core_utils::{
-        errors::{AppJson, ServerError},
+    domain, entities,
+    libs::{
+        http::errors::{AppJson, ServerError},
         jwt,
     },
-    domain, entities,
 };
 
 /// Post message

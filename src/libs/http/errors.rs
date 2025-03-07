@@ -10,7 +10,7 @@ use serde::{self, Serialize};
 use thiserror::Error;
 use validator::ValidationErrors;
 
-use crate::core_utils::jwt;
+use crate::libs::jwt;
 
 pub trait ServiceError: Debug + StdError {
     fn status(&self) -> StatusCode;

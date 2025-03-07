@@ -2,12 +2,12 @@ extern crate rust_simple_chat as app;
 
 mod entrypoint;
 
-use app::{config::Config, core_utils};
+use app::{config::Config, libs};
 use entrypoint::Entrypoint;
 
 #[tokio::main]
 async fn main() {
-    core_utils::hooks::setup_panic_hook();
+    libs::hooks::setup_panic_hook();
 
     let config = Config::parse();
     let mut entry = Entrypoint::new(config);
