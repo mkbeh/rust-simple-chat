@@ -7,8 +7,8 @@ on:
   #      - '**/Cargo.lock'
   workflow_run:
     workflows: [ "CI" ]
-    types:
-      - requested
+    #    types:
+    #      - requested
     push:
       paths:
         - '**/Cargo.toml'
