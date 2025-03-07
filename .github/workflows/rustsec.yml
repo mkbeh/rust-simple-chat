@@ -5,10 +5,10 @@ on:
     paths:
       - '**/Cargo.toml'
       - '**/Cargo.lock'
-#  workflow_run:
-#    workflows: [ "CI" ]
-#    types:
-#      - completed
+  workflow_run:
+    workflows: [ "CI" ]
+    types:
+      - requested
 
 jobs:
   security_audit:
