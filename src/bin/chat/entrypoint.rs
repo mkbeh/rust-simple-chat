@@ -6,7 +6,7 @@ use app::{
     config::Config,
     infra::repositories,
     libs,
-    libs::{closer::Closer, http_server::Server, postgres_pool},
+    libs::{closer::Closer, http::Server, postgres_pool},
 };
 
 pub struct Entrypoint<'a> {

@@ -9,7 +9,7 @@ use axum::{
 use http::Response;
 use metrics_exporter_prometheus::{Matcher, PrometheusBuilder, PrometheusHandle};
 
-use crate::libs::{errors::ServerError, http_server_errors::CommonServerErrors};
+use crate::libs::{errors::ServerError, http::errors::CommonServerErrors};
 
 pub fn panic_handler(_: Box<dyn Any + Send + 'static>) -> Response<axum::body::Body> {
     ServerError::ServiceError(&CommonServerErrors::Panic).into_response()

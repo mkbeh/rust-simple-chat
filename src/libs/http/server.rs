@@ -23,10 +23,12 @@ use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::libs::{
     errors::ServerError,
-    http_server_errors::CommonServerErrors,
-    http_server_middlewares::{metrics_handler, panic_handler, setup_metrics_recorder},
+    http::{
+        CommonServerErrors,
+        middlewares::{metrics_handler, panic_handler, setup_metrics_recorder},
+        swagger,
+    },
     observability::{span_error, span_ok},
-    swagger,
 };
 
 #[derive(Parser, Debug, Clone)]
