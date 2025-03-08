@@ -29,8 +29,6 @@ RUN addgroup -g 101 app && \
 
 WORKDIR /app/
 
-RUN echo "service name 2: ${SERVICE_NAME}"
-
 COPY --from=builder --chown=app:app /src/target/x86_64-unknown-linux-musl/release/${SERVICE_NAME} .
 COPY --chown=app:app migrations migrations
 
