@@ -1,12 +1,15 @@
-use std::{default::Default, sync::Arc};
+use std::sync::Arc;
 
 use anyhow::anyhow;
-use app::{
-    api,
+use app::{cronjob::DummyProcess, infra::repositories};
+use rust_simple_chat::{
     config::Config,
-    infra::repositories,
     libs,
-    libs::{closer::Closer, http::Server, postgres_pool},
+    libs::{
+        closer::Closer,
+        http::{server::Process, Server},
+        postgres_pool,
+    },
 };
 
 pub struct Entrypoint<'a> {
@@ -36,13 +39,13 @@ impl Entrypoint<'_> {
         self.closer.push(Box::new(move || pool.clone().close()));
 
         let messages_repository = repositories::MessagesRepository::new(self.pool.clone().unwrap());
-        let state = Arc::new(api::State {
-            messages_repository: Arc::new(messages_repository),
-        });
-        let api_router = api::ApiRouter::new().state(state.clone()).build();
+
+        // init dummy process
+        let dummy_ps = DummyProcess::new(1, Arc::new(messages_repository));
+        let processes: Vec<&'static dyn Process> = vec![dummy_ps];
 
         Server::new(self.config.server.clone())
-            .router(api_router)
+            .processes(&processes)
             .run()
             .await
             .map_err(|err| anyhow!("handling server error: {}", err))?;

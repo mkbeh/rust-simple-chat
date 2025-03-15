@@ -11,6 +11,8 @@ services:
       - "14268:14268"
       - "14269:14269"
       - "9411:9411"
+    networks:
+      - simple-chat-network
 
   postgres:
     image: postgres:14.2-alpine
@@ -52,8 +54,31 @@ services:
     container_name: chat-api
     env_file:
       - .env.template
+    environment:
+      SERVER_PORT: "9000"
+      SERVER_METRICS_PORT: "9007"
     ports:
       - "9000:9000"
+    volumes:
+      - /data:/usr/src/app
+    networks:
+      - simple-chat-network
+    depends_on:
+      - db-migrate
+
+  worker:
+    build:
+      context: .
+      args:
+        SERVICE_NAME: "worker" # /src/bin/<bin_name>
+    container_name: worker
+    env_file:
+      - .env.template
+    environment:
+      SERVER_PORT: "9001" # set another port than chat, because server default port 9000
+      SERVER_METRICS_PORT: "9008" # set another metrics port than chat, because server default port 9007
+    ports:
+      - "9001:9001"
     volumes:
       - /data:/usr/src/app
     networks:

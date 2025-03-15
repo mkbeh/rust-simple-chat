@@ -49,6 +49,7 @@ metrics-exporter-prometheus = { version = "0.16.2", default-features = false }
 metrics = { version = "0.24.1", default-features = false }
 tracing-subscriber = { version = "0.3.19", features = ["env-filter", "json"] }
 tracing = { version = "0.1.41" }
+tracing-opentelemetry = { version = "0.29.0" }
 http = { version = "1.2.0" }
 utoipa = { version = "5.3.1", features = ["axum_extras", "chrono"] }
 utoipa-swagger-ui = { version = "9.0.0", features = ["axum", "reqwest"] }
@@ -62,6 +63,6 @@ serde_json = { version = "1.0.138" }
 mockall = { version = "0.13.1" }
 http-body-util = "0.1.2"
 opentelemetry = { version = "0.28.0", features = ["trace", "internal-logs"] }
-opentelemetry-otlp = { version = "0.28.0", features = ["trace"] }
+opentelemetry-otlp = { version = "0.28.0", features = ["trace", "http-proto"] }
 opentelemetry_sdk = { version = "0.28.0", features = ["rt-tokio"] }
-tracing-opentelemetry = { version = "0.29.0" }
+tokio-util = "0.7.13"

@@ -5,23 +5,26 @@ use std::{
     future::ready,
     iter::once,
     net::SocketAddr,
+    sync::LazyLock,
     time::Duration,
 };
 
 use anyhow::anyhow;
+use async_trait::async_trait;
 use axum::{
-    Router,
     body::{Body, HttpBody},
     extract::MatchedPath,
     http,
-    http::{HeaderName, HeaderValue, Method, StatusCode, header::AUTHORIZATION},
+    http::{header::AUTHORIZATION, HeaderName, HeaderValue, Method, StatusCode},
     middleware,
     response::IntoResponse,
     routing::get,
+    Router,
 };
 use clap::Parser;
 use thiserror::Error;
 use tokio::signal;
+use tokio_util::sync::CancellationToken;
 use tower_http::{
     catch_panic::CatchPanicLayer, classify::ServerErrorsFailureClass,
     compression::CompressionLayer, cors::CorsLayer, propagate_header::PropagateHeaderLayer,
@@ -39,6 +42,8 @@ use crate::libs::{
     },
     observability::{span_error, span_ok},
 };
+
+static SHUTDOWN_TOKEN: LazyLock<CancellationToken> = LazyLock::new(CancellationToken::new);
 
 #[derive(Parser, Debug, Clone)]
 pub struct Config {
@@ -62,46 +67,79 @@ impl Config {
     }
 }
 
-pub struct Server {
-    addr: String,
-    request_timeout: Duration,
-    metrics_addr: String,
-    router: Option<OpenApiRouter>,
+#[async_trait]
+pub trait Process: Send + Sync {
+    async fn pre_run(&self) -> anyhow::Result<()>;
+    async fn run(&self, token: CancellationToken) -> anyhow::Result<()>;
 }
 
-impl Server {
+pub struct Server<'a> {
+    addr: String,
+    metrics_addr: String,
+    request_timeout: Duration,
+    router: Option<OpenApiRouter>,
+    processes: Option<&'a Vec<&'static dyn Process>>,
+}
+
+impl<'a> Server<'a> {
     crate::self_method!(router, OpenApiRouter);
+    crate::self_method!(processes, &'a Vec<&'static dyn Process>);
 
     pub fn new(cfg: Config) -> Self {
         Server {
             addr: cfg.get_addr(),
             metrics_addr: cfg.get_metrics_addr(),
-            router: None,
             request_timeout: cfg.request_timeout.into(),
+            router: None,
+            processes: None,
         }
     }
 
     pub async fn run(&self) -> anyhow::Result<()> {
-        let app_router = match self.router.clone() {
-            Some(router) => self.setup_router(router),
-            None => Router::from(get_default_router()),
+        let app_server = self.bootstrap_server(self.addr.clone(), self.setup_router());
+        let metrics_server = self.bootstrap_server(self.metrics_addr.clone(), get_metrics_router());
+
+        let processes = match self.processes {
+            Some(processes) => processes,
+            _ => &vec![],
         };
 
-        let app_server = self.bootstrap_server(self.addr.clone(), app_router);
-        let metrics_server = self.bootstrap_server(self.metrics_addr.clone(), get_metrics_router());
+        // pre run processes
+        {
+            let tasks: Vec<_> = processes
+                .iter()
+                .map(|p| tokio::spawn(async { p.pre_run().await }))
+                .collect();
+
+            for task in tasks {
+                if let Err(e) = task.await? {
+                    return Err(anyhow!("error while pre run process: {}", e));
+                }
+            }
+        }
 
         // disable failure in the custom panic hook when there is a panic,
         // because we can't handle the panic in the panic middleware (exit(1) trouble)
         setup_panic_hook();
 
-        tracing::info!(
-            "Starting servers: application={}, metrics={}",
-            self.addr.clone(),
-            self.metrics_addr.clone()
-        );
+        {
+            // run processes
+            let runnable_tasks: Vec<_> = processes
+                .iter()
+                .map(|p| tokio::spawn(async { p.run(SHUTDOWN_TOKEN.clone()).await }))
+                .collect();
 
-        tokio::try_join!(app_server, metrics_server)
-            .map_err(|e| anyhow!("Failed to bootstrap server. Reason: {:?}", e))?;
+            tokio::try_join!(app_server, metrics_server)
+                .map_err(|e| anyhow!("Failed to bootstrap server. Reason: {:?}", e))?;
+
+            SHUTDOWN_TOKEN.cancel();
+
+            for task in runnable_tasks {
+                if let Err(e) = task.await? {
+                    tracing::error!("Failed to shutdown processes. Reason: {:?}", e);
+                }
+            }
+        }
 
         Ok(())
     }
@@ -122,10 +160,15 @@ impl Server {
         Ok(())
     }
 
-    fn setup_router(&self, router: OpenApiRouter) -> Router {
-        let _router = swagger::get_openapi_router(router.merge(get_default_router()));
+    fn setup_router(&self) -> Router {
+        let _router = match self.router.clone() {
+            Some(router) => router.merge(get_default_router()),
+            _ => get_default_router(),
+        };
 
-        _router
+        let router = swagger::get_openapi_router(_router);
+
+        router
             // Panic recovery handler
             .layer(CatchPanicLayer::custom(panic_handler))
             // Prometheus metrics tracker
