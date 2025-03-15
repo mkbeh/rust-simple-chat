@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use anyhow::anyhow;
 use app::{cronjob::DummyProcess, infra::repositories};
+use clap::Parser;
 use rust_simple_chat::{
-    config::Config,
     libs,
     libs::{
         closer::Closer,
@@ -13,15 +13,13 @@ use rust_simple_chat::{
 };
 
 pub struct Entrypoint<'a> {
-    config: Config,
     closer: Closer<'a>,
     pool: Option<deadpool_postgres::Pool>,
 }
 
 impl Entrypoint<'_> {
-    pub fn new(config: Config) -> Self {
+    pub fn new() -> Self {
         Self {
-            config,
             pool: None,
             closer: Closer::default(),
         }
@@ -31,20 +29,22 @@ impl Entrypoint<'_> {
         let observability = libs::Observability::setup();
         self.closer.push(Box::new(move || observability.unset()));
 
-        let pool = postgres_pool::build_pool_from_config(self.config.postgres.clone())
+        let pool = postgres_pool::build_pool_from_config(postgres_pool::Config::parse())
             .await
             .map_err(|err| anyhow!("failed to create pool: {:?}", err))?;
 
         self.pool = Some(pool.clone());
         self.closer.push(Box::new(move || pool.clone().close()));
 
-        let messages_repository = repositories::MessagesRepository::new(self.pool.clone().unwrap());
+        let messages_repository = Arc::new(repositories::MessagesRepository::new(
+            self.pool.clone().unwrap(),
+        ));
 
         // init dummy process
-        let dummy_ps = DummyProcess::new(1, Arc::new(messages_repository));
+        let dummy_ps = DummyProcess::new(1, messages_repository);
         let processes: Vec<&'static dyn Process> = vec![dummy_ps];
 
-        Server::new(self.config.server.clone())
+        Server::new(app::libs::http::server::Config::parse())
             .processes(&processes)
             .run()
             .await
