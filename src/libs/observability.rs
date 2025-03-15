@@ -1,14 +1,13 @@
 use std::env;
 
-use opentelemetry::{KeyValue, global, trace::TracerProvider};
-use opentelemetry_otlp;
+use opentelemetry::{global, trace::TracerProvider, KeyValue};
 use opentelemetry_sdk::{
-    Resource,
     propagation::TraceContextPropagator,
     trace::{Sampler, SdkTracerProvider},
+    Resource,
 };
 use tracing::Span;
-use tracing_subscriber::{EnvFilter, layer::SubscriberExt, prelude::*, util::SubscriberInitExt};
+use tracing_subscriber::{layer::SubscriberExt, prelude::*, util::SubscriberInitExt, EnvFilter};
 
 const DEFAULT_OTEL_SAMPLING_RATIO: &str = "1.0";
 
@@ -105,7 +104,7 @@ fn get_tracing_filter() -> EnvFilter {
         .add_directive("tower_http=error".parse().unwrap())
         .add_directive("axum::rejection=trace".parse().unwrap())
         .add_directive("tokio_postgres=error".parse().unwrap())
-        .add_directive("opentelemetry=off".parse().unwrap())
+        .add_directive("opentelemetry=error".parse().unwrap())
 }
 
 pub fn span_ok(span: &Span) {

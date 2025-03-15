@@ -8,30 +8,42 @@ use humantime;
 #[derive(Parser, Debug, Clone)]
 pub struct Config {
     #[arg(long, env = "POSTGRES_HOST", default_value = "127.0.0.1")]
+    /// Adds a host to the configuration.
     pub host: String,
     #[arg(long, env = "POSTGRES_PORT", default_value = "5432")]
+    /// Adds a port to the configuration.
     pub port: u16,
     #[arg(long, env = "POSTGRES_USER", required = true)]
+    /// Sets the user to authenticate with.
     pub user: String,
     #[arg(long, env = "POSTGRES_PASSWORD", required = true)]
+    /// Sets the password to authenticate with.
     pub password: String,
     #[arg(long, env = "POSTGRES_DB", required = true)]
+    /// Sets the name of the database to connect to.
     pub db: String,
     #[arg(long, env = "POSTGRES_SCHEMA", required = true)]
     pub schema: String,
     #[arg(long, env = "POSTGRES_CONNECT_TIMEOUT", default_value = "5s")]
+    /// Sets the timeout applied to socket-level connection attempts.
     pub connect_timeout: humantime::Duration,
     #[arg(long, env = "POSTGRES_KEEPALIVES", default_value = "true")]
+    /// Controls the use of TCP keepalive.
     pub keepalives: bool,
     #[arg(long, env = "POSTGRES_KEEPALIVES_IDLE", default_value = "30s")]
+    /// Sets the amount of idle time before a keepalive packet is sent on the connection.
     pub keepalives_idle: humantime::Duration,
     #[arg(long, env = "POSTGRES_TARGET_SESSION_ATTRS", default_value = "any")]
+    /// Sets the requirements of the session.
     pub target_session_attrs: String,
-    #[arg(long, env = "POSTGRES_MAX_CONNECTIONS", default_value = "50")]
+    #[arg(long, env = "POSTGRES_MAX_CONNECTIONS", default_value = "15")]
+    /// Maximum size of the pool.
     pub max_connections: usize,
     #[arg(long, env = "POSTGRES_CREATE_TIMEOUT", default_value = "1m")]
+    /// Timeout when creating a new object.
     pub create_timeout: humantime::Duration,
     #[arg(long, env = "POSTGRES_WAIT_TIMEOUT", default_value = "30s")]
+    /// Timeout when waiting for a slot to become available.
     pub wait_timeout: humantime::Duration,
 }
 

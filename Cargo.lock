@@ -2038,6 +2038,7 @@ dependencies = [
  "tokio",
  "tokio-postgres",
  "tokio-postgres-utils",
+ "tokio-util",
  "tower",
  "tower-http",
  "tracing",
