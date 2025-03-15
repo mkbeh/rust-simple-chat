@@ -3,7 +3,6 @@ use std::{default::Default, sync::Arc};
 use anyhow::anyhow;
 use app::{
     api,
-    // config::Config,
     infra::repositories,
     libs,
     libs::{closer::Closer, http, http::Server, postgres_pool},
