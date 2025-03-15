@@ -43,6 +43,8 @@ use crate::libs::{
     observability::{span_error, span_ok},
 };
 
+const SERVER_KIND_APP: &str = "application";
+const SERVER_KIND_METRICS: &str = "metrics";
 static SHUTDOWN_TOKEN: LazyLock<CancellationToken> = LazyLock::new(CancellationToken::new);
 
 #[derive(Parser, Debug, Clone)]
@@ -96,8 +98,14 @@ impl<'a> Server<'a> {
     }
 
     pub async fn run(&self) -> anyhow::Result<()> {
-        let app_server = self.bootstrap_server(self.addr.clone(), self.setup_router());
-        let metrics_server = self.bootstrap_server(self.metrics_addr.clone(), get_metrics_router());
+        let app_server =
+            self.bootstrap_server(self.addr.clone(), self.setup_router(), SERVER_KIND_APP);
+
+        let metrics_server = self.bootstrap_server(
+            self.metrics_addr.clone(),
+            get_metrics_router(),
+            SERVER_KIND_METRICS,
+        );
 
         let processes = match self.processes {
             Some(processes) => processes,
@@ -144,10 +152,17 @@ impl<'a> Server<'a> {
         Ok(())
     }
 
-    async fn bootstrap_server(&self, addr: String, router: Router) -> anyhow::Result<()> {
+    async fn bootstrap_server(
+        &self,
+        addr: String,
+        router: Router,
+        server_kind: &str,
+    ) -> anyhow::Result<()> {
         let listener = tokio::net::TcpListener::bind(addr.clone())
             .await
             .map_err(|e| anyhow!("failed to bind to address: {e}"))?;
+
+        tracing::info!("listening {server_kind} server on {addr}");
 
         axum::serve(
             listener,
