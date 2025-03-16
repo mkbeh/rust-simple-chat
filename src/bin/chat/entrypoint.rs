@@ -1,37 +1,30 @@
-use std::{default::Default, sync::Arc};
+use std::sync::Arc;
 
 use anyhow::anyhow;
 use app::{
     api,
     infra::repositories,
     libs,
-    libs::{closer::Closer, http, http::Server, postgres_pool},
+    libs::{http, http::Server, postgres_pool},
 };
 use clap::Parser;
 
-pub struct Entrypoint<'a> {
-    closer: Closer<'a>,
+pub struct Entrypoint {
     pool: Option<deadpool_postgres::Pool>,
 }
 
-impl Entrypoint<'_> {
+impl Entrypoint {
     pub fn new() -> Self {
-        Self {
-            pool: None,
-            closer: Closer::default(),
-        }
+        Self { pool: None }
     }
 
     pub async fn bootstrap_server(&mut self) -> anyhow::Result<()> {
-        let observability = libs::Observability::setup();
-        self.closer.push(Box::new(move || observability.unset()));
-
         let pool = postgres_pool::build_pool_from_config(postgres_pool::Config::parse())
             .await
             .map_err(|err| anyhow!("failed to create pool: {:?}", err))?;
 
         self.pool = Some(pool.clone());
-        self.closer.push(Box::new(move || pool.clone().close()));
+        libs::closer::push_callback(Box::new(move || pool.clone().close()));
 
         let messages_repository = Arc::new(repositories::MessagesRepository::new(
             self.pool.clone().unwrap(),
@@ -48,9 +41,5 @@ impl Entrypoint<'_> {
             .map_err(|err| anyhow!("handling server error: {}", err))?;
 
         Ok(())
-    }
-
-    pub async fn shutdown(&mut self) {
-        self.closer.close();
     }
 }

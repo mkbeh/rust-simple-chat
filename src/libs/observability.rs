@@ -1,4 +1,4 @@
-use std::env;
+use std::{env, sync::LazyLock};
 
 use opentelemetry::{global, trace::TracerProvider, KeyValue};
 use opentelemetry_sdk::{
@@ -10,38 +10,37 @@ use tracing::Span;
 use tracing_subscriber::{layer::SubscriberExt, prelude::*, util::SubscriberInitExt, EnvFilter};
 
 const DEFAULT_OTEL_SAMPLING_RATIO: &str = "1.0";
+static TRACER_PROVIDER: LazyLock<SdkTracerProvider> = LazyLock::new(setup);
 
-pub struct Observability {
-    tracer_provider: SdkTracerProvider,
+pub fn get_tracer_provider() -> SdkTracerProvider {
+    TRACER_PROVIDER.clone()
 }
 
-impl Observability {
-    pub fn setup() -> Self {
-        let tracer_provider = init_tracer_provider();
-        let telemetry_layer = tracing_opentelemetry::layer()
-            .with_tracer(tracer_provider.tracer(env!("CARGO_PKG_NAME")))
-            .with_filter(get_otel_filter());
+pub fn setup() -> SdkTracerProvider {
+    let tracer_provider = init_tracer_provider();
+    let telemetry_layer = tracing_opentelemetry::layer()
+        .with_tracer(tracer_provider.tracer(env!("CARGO_PKG_NAME")))
+        .with_filter(get_otel_filter());
 
-        let fmt_layer = tracing_subscriber::fmt::layer()
-            .json()
-            .flatten_event(true)
-            .with_level(true)
-            .with_line_number(true);
+    let fmt_layer = tracing_subscriber::fmt::layer()
+        .json()
+        .flatten_event(true)
+        .with_level(true)
+        .with_line_number(true);
 
-        tracing_subscriber::registry()
-            .with(telemetry_layer)
-            .with(get_tracing_filter())
-            .with(fmt_layer)
-            .init();
+    tracing_subscriber::registry()
+        .with(telemetry_layer)
+        .with(get_tracing_filter())
+        .with(fmt_layer)
+        .init();
 
-        Self { tracer_provider }
-    }
+    tracer_provider
+}
 
-    pub fn unset(&self) {
-        let _ = self.tracer_provider.shutdown().map_err(|err| {
-            tracing::error!("Failed to shutdown tracer: {:?}", err);
-        });
-    }
+pub fn unset() {
+    let _ = TRACER_PROVIDER.shutdown().map_err(|err| {
+        tracing::error!("Failed to shutdown tracer: {:?}", err);
+    });
 }
 
 fn init_tracer_provider() -> SdkTracerProvider {

@@ -1,15 +1,27 @@
-type CloserFunc<'a> = Box<dyn Fn() + 'a>;
+use std::sync::{LazyLock, Mutex};
+
+static CLOSER: LazyLock<Mutex<Closer>> = LazyLock::new(|| Mutex::new(Closer::default()));
+
+pub fn push_callback(callback: CloserFunc<'static>) {
+    CLOSER.lock().unwrap().push(callback);
+}
+
+pub fn cleanup_resources() {
+    CLOSER.lock().unwrap().close()
+}
+
+type CloserFunc<'a> = Box<dyn Fn() + 'a + Send + Sync>;
 
 #[derive(Default)]
-pub struct Closer<'a> {
+struct Closer<'a> {
     closers: Vec<CloserFunc<'a>>,
 }
 
 impl<'a> Closer<'a> {
-    pub fn push(&mut self, callback: CloserFunc<'a>) {
+    fn push(&mut self, callback: CloserFunc<'a>) {
         self.closers.push(callback);
     }
-    pub fn close(&mut self) {
+    fn close(&mut self) {
         self.closers.iter_mut().for_each(|cb| cb());
     }
 }
