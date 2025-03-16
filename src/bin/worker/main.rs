@@ -8,11 +8,13 @@ use entrypoint::Entrypoint;
 #[tokio::main]
 async fn main() {
     libs::hooks::setup_panic_hook();
+    libs::observability::get_tracer_provider();
+    libs::closer::push_callback(Box::new(libs::observability::unset));
 
     let mut entry = Entrypoint::new();
     let entry_result = entry.bootstrap_server().await;
 
-    entry.shutdown().await;
+    libs::closer::cleanup_resources();
 
     match entry_result {
         Ok(_) => std::process::exit(0),

@@ -5,5 +5,3 @@ pub mod jwt;
 pub mod macro_utils;
 pub mod observability;
 pub mod postgres_pool;
-
-pub use observability::Observability;
