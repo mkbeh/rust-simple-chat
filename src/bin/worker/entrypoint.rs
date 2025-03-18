@@ -5,7 +5,7 @@ use app::{cronjob::DummyProcess, infra::repositories, libs};
 use clap::Parser;
 use rust_simple_chat::libs::{
     http,
-    http::{server::Process, Server},
+    http::{Server, server::Process},
     postgres_pool,
 };
 

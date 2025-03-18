@@ -1,13 +1,13 @@
 use std::{env, sync::LazyLock};
 
-use opentelemetry::{global, trace::TracerProvider, KeyValue};
+use opentelemetry::{KeyValue, global, trace::TracerProvider};
 use opentelemetry_sdk::{
+    Resource,
     propagation::TraceContextPropagator,
     trace::{Sampler, SdkTracerProvider},
-    Resource,
 };
 use tracing::Span;
-use tracing_subscriber::{layer::SubscriberExt, prelude::*, util::SubscriberInitExt, EnvFilter};
+use tracing_subscriber::{EnvFilter, layer::SubscriberExt, prelude::*, util::SubscriberInitExt};
 
 const DEFAULT_OTEL_SAMPLING_RATIO: &str = "1.0";
 static TRACER_PROVIDER: LazyLock<SdkTracerProvider> = LazyLock::new(setup);

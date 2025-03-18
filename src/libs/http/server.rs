@@ -12,14 +12,14 @@ use std::{
 use anyhow::anyhow;
 use async_trait::async_trait;
 use axum::{
+    Router,
     body::{Body, HttpBody},
     extract::MatchedPath,
     http,
-    http::{header::AUTHORIZATION, HeaderName, HeaderValue, Method, StatusCode},
+    http::{HeaderName, HeaderValue, Method, StatusCode, header::AUTHORIZATION},
     middleware,
     response::IntoResponse,
     routing::get,
-    Router,
 };
 use clap::Parser;
 use thiserror::Error;
