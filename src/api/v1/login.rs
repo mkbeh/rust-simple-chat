@@ -1,6 +1,9 @@
-use axum::Json;
+use std::sync::Arc;
+
+use axum::{Extension, Json};
 
 use crate::{
+    api::State,
     entities,
     libs::{http::errors::ServerError, jwt, jwt::Claims},
 };
@@ -16,7 +19,9 @@ use crate::{
         (status = 200, description = "List all todos successfully", body = entities::auth::LoginResponse)
     )
 )]
-pub async fn login_handler() -> Result<Json<entities::auth::LoginResponse>, ServerError> {
+pub async fn login_handler(
+    Extension(_state): Extension<Arc<State>>,
+) -> Result<Json<entities::auth::LoginResponse>, ServerError> {
     const USER_ID: i32 = 123;
     const TOKEN_LIFETIME_SECS: u64 = 300;
 
@@ -33,7 +38,7 @@ pub async fn login_handler() -> Result<Json<entities::auth::LoginResponse>, Serv
 mod tests {
     use std::sync::Arc;
 
-    use axum::{Router, body::Body, http::Request};
+    use axum::{body::Body, http::Request, Router};
     use http_body_util::BodyExt;
     use tower::ServiceExt;
 

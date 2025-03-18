@@ -4,8 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [profile.release]
-strip = true
 lto = true
+
+[profile.profiling]
+inherits = "release"
+debug = true
 
 [[bin]]
 name = "chat"
@@ -20,18 +23,22 @@ name = "benches"
 harness = false
 
 [dependencies]
-axum = { version = "0.8.1", features = ["http1", "http2", "json", "macros"] }
-axum-core = { version = "0.5.0" }
-axum-extra = { version = "0.10.0", features = ["typed-header"] }
-tokio = { version = "1.43.0", features = ["full"] }
 anyhow = { version = "1.0.95", default-features = false }
 serde = { version = "1.0.217", features = ["derive"] }
 chrono = { version = "0.4.39", features = ["serde"] }
 clap = { version = "4.5.28", features = ["derive", "env"] }
 humantime = { version = "2.1.0" }
-deadpool-postgres = { version = "0.14.1" }
-tokio-postgres = { version = "0.7.13", features = ["with-chrono-0_4"] }
-tokio-postgres-utils = { version = "0.2.0" }
+validator = { version = "0.20.0", features = ["derive"] }
+thiserror = { version = "2.0.11" }
+async-trait = { version = "0.1.86" }
+mime = { version = "0.3.17" }
+serde_json = { version = "1.0.138" }
+mockall = { version = "0.13.1" }
+jsonwebtoken = { version = "9.3.1" }
+
+axum = { version = "0.8.1", features = ["http1", "http2", "json", "macros"] }
+axum-core = { version = "0.5.0" }
+axum-extra = { version = "0.10.0", features = ["typed-header"] }
 tower = { version = "0.5.2", features = ["timeout"] }
 tower-http = { version = "0.6.2", features = [
     "cors",
@@ -42,27 +49,26 @@ tower-http = { version = "0.6.2", features = [
     "propagate-header",
     "trace"
 ] }
-validator = { version = "0.20.0", features = ["derive"] }
-thiserror = { version = "2.0.11" }
-jsonwebtoken = { version = "9.3.1" }
-metrics-exporter-prometheus = { version = "0.16.2", default-features = false }
-metrics = { version = "0.24.1", default-features = false }
-tracing-subscriber = { version = "0.3.19", features = ["env-filter", "json"] }
-tracing = { version = "0.1.41" }
-tracing-opentelemetry = { version = "0.29.0" }
 http = { version = "1.2.0" }
+http-body-util = "0.1.2"
 utoipa = { version = "5.3.1", features = ["axum_extras", "chrono"] }
 utoipa-swagger-ui = { version = "9.0.0", features = ["axum", "reqwest"] }
 utoipa-axum = { version = "0.2.0" }
 utoipa-redoc = { version = "6.0.0", features = ["axum"] }
 utoipa-rapidoc = { version = "6.0.0", features = ["axum"] }
 utoipa-scalar = { version = "0.3.0", features = ["axum"] }
-async-trait = { version = "0.1.86" }
-mime = { version = "0.3.17" }
-serde_json = { version = "1.0.138" }
-mockall = { version = "0.13.1" }
-http-body-util = "0.1.2"
+
+tokio = { version = "1.43.0", features = ["full"] }
+tokio-util = "0.7.13"
+tokio-postgres = { version = "0.7.13", features = ["with-chrono-0_4"] }
+tokio-postgres-utils = { version = "0.2.0" }
+deadpool-postgres = { version = "0.14.1" }
+
+metrics = { version = "0.24.1", default-features = false }
+metrics-exporter-prometheus = { version = "0.16.2", default-features = false }
+tracing = { version = "0.1.41" }
+tracing-subscriber = { version = "0.3.19", features = ["env-filter", "json"] }
+tracing-opentelemetry = { version = "0.29.0" }
 opentelemetry = { version = "0.28.0", features = ["trace", "internal-logs"] }
 opentelemetry-otlp = { version = "0.28.0", features = ["trace", "http-proto"] }
 opentelemetry_sdk = { version = "0.28.0", features = ["rt-tokio"] }
-tokio-util = "0.7.13"

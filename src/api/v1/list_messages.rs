@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use axum::{Extension, Json, extract::Query};
+use axum::{extract::Query, Extension, Json};
 
 use crate::{
-    api::{State, query},
+    api::{query, State},
     entities,
     libs::{http::errors::ServerError, jwt},
 };
@@ -22,7 +22,7 @@ use crate::{
         query::Pagination
     ),
     responses(
-        (status = 200, description = "List all todos successfully", body = [entities::message::MessageResponse])
+        (status = 200, description = "List all messages successfully", body = [entities::message::MessageResponse])
     )
 )]
 pub async fn list_messages_handler(
@@ -56,11 +56,11 @@ pub async fn list_messages_handler(
 mod tests {
     use std::sync::Arc;
 
-    use axum::{Router, body::Body, extract::Request};
+    use axum::{body::Body, extract::Request, Router};
     use chrono::{DateTime, Utc};
     use http_body_util::BodyExt;
     use mockall::predicate::*;
-    use serde_json::{Value, json};
+    use serde_json::{json, Value};
     use tower::ServiceExt;
 
     use crate::{
