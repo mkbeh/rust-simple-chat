@@ -38,7 +38,7 @@ pub async fn login_handler(
 mod tests {
     use std::sync::Arc;
 
-    use axum::{body::Body, http::Request, Router};
+    use axum::{Router, body::Body, http::Request};
     use http_body_util::BodyExt;
     use tower::ServiceExt;
 

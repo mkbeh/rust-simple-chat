@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use axum::{extract::Query, Extension, Json};
+use axum::{Extension, Json, extract::Query};
 
 use crate::{
-    api::{query, State},
+    api::{State, query},
     entities,
     libs::{http::errors::ServerError, jwt},
 };
@@ -56,11 +56,11 @@ pub async fn list_messages_handler(
 mod tests {
     use std::sync::Arc;
 
-    use axum::{body::Body, extract::Request, Router};
+    use axum::{Router, body::Body, extract::Request};
     use chrono::{DateTime, Utc};
     use http_body_util::BodyExt;
     use mockall::predicate::*;
-    use serde_json::{json, Value};
+    use serde_json::{Value, json};
     use tower::ServiceExt;
 
     use crate::{
