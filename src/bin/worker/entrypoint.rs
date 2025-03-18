@@ -4,6 +4,7 @@ use anyhow::anyhow;
 use app::{cronjob::DummyProcess, infra::repositories, libs};
 use clap::Parser;
 use rust_simple_chat::libs::{
+    http,
     http::{server::Process, Server},
     postgres_pool,
 };
@@ -33,7 +34,7 @@ impl Entrypoint {
         let dummy_process = DummyProcess::new(1, messages_repository);
         let processes: Vec<&'static dyn Process> = vec![dummy_process];
 
-        Server::new(app::libs::http::server::Config::parse())
+        Server::new(http::server::Config::parse())
             .processes(&processes)
             .run()
             .await
