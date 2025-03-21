@@ -59,6 +59,7 @@ services:
       SERVER_METRICS_PORT: "9007"
     ports:
       - "9000:9000"
+      - "9007:9007"
     volumes:
       - /data:/usr/src/app
     networks:

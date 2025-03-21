@@ -34,8 +34,10 @@ impl Entrypoint {
             messages_repository,
         });
 
+        let router = api::ApiRouter::new().with_state(state.clone()).build();
+
         Server::new(http::server::Config::parse())
-            .router(api::ApiRouter::new().state(state.clone()).build())
+            .router(router)
             .run()
             .await
             .map_err(|err| anyhow!("handling server error: {}", err))?;
