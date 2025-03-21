@@ -3,7 +3,7 @@ pub mod router;
 pub mod state;
 pub mod v1;
 
-pub use self::{router::ApiRouter, state::State};
+pub use self::{router::ApiRouterBuilder, state::State};
 use crate::libs::jwt;
 
 pub fn generate_test_token() -> String {

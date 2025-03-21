@@ -68,7 +68,7 @@ mod tests {
 
     use crate::{
         api,
-        api::{ApiRouter, State},
+        api::{ApiRouterBuilder, State},
         infra::repositories,
     };
 
@@ -86,7 +86,7 @@ mod tests {
         let state = State {
             messages_repository: Arc::new(messages_repository),
         };
-        let app = Router::from(ApiRouter::new().with_state(Arc::from(state)).build());
+        let app = Router::from(ApiRouterBuilder::new().with_state(Arc::from(state)).build());
 
         let response = app
             .oneshot(

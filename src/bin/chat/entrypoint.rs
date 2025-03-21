@@ -34,7 +34,9 @@ impl Entrypoint {
             messages_repository,
         });
 
-        let router = api::ApiRouter::new().with_state(state.clone()).build();
+        let router = api::ApiRouterBuilder::new()
+            .with_state(state.clone())
+            .build();
 
         Server::new(http::server::Config::parse())
             .router(router)

@@ -1,8 +1,8 @@
-use std::{clone::Clone, sync::OnceLock};
+use std::clone::Clone;
 
 use axum::{
     body::{Bytes, HttpBody},
-    extract::{MatchedPath, State},
+    extract::MatchedPath,
     middleware::Next,
 };
 use axum_core::{
@@ -11,61 +11,41 @@ use axum_core::{
 };
 use http::header::CONTENT_TYPE;
 use http_body_util::Full;
-use opentelemetry::{
-    KeyValue, global,
-    metrics::{Counter, Histogram},
+use lazy_static::lazy_static;
+use prometheus::{
+    CounterVec, Encoder, GaugeVec, HistogramVec, TextEncoder, register_counter_vec,
+    register_gauge_vec, register_histogram_vec,
 };
-use prometheus::{Encoder, TextEncoder};
 use tokio::time::Instant;
 
-use crate::libs::observability;
-
-pub fn get_metrics_state() -> MetricsState {
-    static INSTANCE: OnceLock<MetricsState> = OnceLock::new();
-    INSTANCE.get_or_init(MetricsState::new).clone()
+lazy_static! {
+    static ref HTTP_COUNTER: CounterVec = register_counter_vec!(
+        "http_requests_total",
+        "Total number of HTTP requests made.",
+        &["method", "path", "status"]
+    )
+    .unwrap();
+    static ref HTTP_REQ_HISTOGRAM: HistogramVec = register_histogram_vec!(
+        "http_request_duration",
+        "The HTTP request latencies in milliseconds.",
+        &["method", "path", "status"]
+    )
+    .unwrap();
+    static ref HTTP_REQ_BODY_GAUGE: GaugeVec = register_gauge_vec!(
+        "http_request_size",
+        "The metrics HTTP request sizes in bytes.",
+        &["method", "path", "status"]
+    )
+    .unwrap();
+    static ref HTTP_RESP_BODY_GAUGE: GaugeVec = register_gauge_vec!(
+        "http_response_size",
+        "The metrics HTTP request sizes in bytes.",
+        &["method", "path", "status"]
+    )
+    .unwrap();
 }
 
-#[derive(Clone)]
-pub struct MetricsState {
-    http_counter: Counter<u64>,
-    http_req_histogram: Histogram<f64>,
-    http_req_body_gauge: Histogram<u64>,
-    http_resp_body_gauge: Histogram<u64>,
-}
-
-impl MetricsState {
-    fn new() -> MetricsState {
-        let meter = global::meter(env!("CARGO_PKG_NAME"));
-
-        Self {
-            http_counter: meter
-                .u64_counter("http_requests_total")
-                .with_description("Total number of HTTP requests made.")
-                .build(),
-            http_req_histogram: meter
-                .f64_histogram("http_request_duration")
-                .with_unit("ms")
-                .with_description("The HTTP request latencies in milliseconds.")
-                .build(),
-            http_req_body_gauge: meter
-                .u64_histogram("http_request_size")
-                .with_unit("By")
-                .with_description("The metrics HTTP request sizes in bytes.")
-                .build(),
-            http_resp_body_gauge: meter
-                .u64_histogram("http_response_size")
-                .with_unit("By")
-                .with_description("The metrics HTTP response sizes in bytes.")
-                .build(),
-        }
-    }
-}
-
-pub async fn metrics_handler(
-    State(state): State<MetricsState>,
-    req: Request,
-    next: Next,
-) -> impl IntoResponse {
+pub async fn metrics_handler(req: Request, next: Next) -> impl IntoResponse {
     let start = Instant::now();
 
     let path = match req.extensions().get::<MatchedPath>() {
@@ -82,16 +62,18 @@ pub async fn metrics_handler(
     let status = response.status().as_u16().to_string();
     let resp_body_size = response.body().size_hint().lower();
 
-    let labels = [
-        KeyValue::new("method", method.to_string()),
-        KeyValue::new("path", path),
-        KeyValue::new("status", status),
-    ];
+    let labels = &[method.as_str(), path.as_str(), status.as_str()];
 
-    state.http_counter.add(1, &labels);
-    state.http_req_histogram.record(latency, &labels);
-    state.http_req_body_gauge.record(req_body_size, &labels);
-    state.http_resp_body_gauge.record(resp_body_size, &labels);
+    HTTP_COUNTER.with_label_values(labels).inc();
+    HTTP_REQ_HISTOGRAM
+        .with_label_values(labels)
+        .observe(latency);
+    HTTP_REQ_BODY_GAUGE
+        .with_label_values(labels)
+        .add(req_body_size as f64);
+    HTTP_RESP_BODY_GAUGE
+        .with_label_values(labels)
+        .add(resp_body_size as f64);
 
     response
 }
@@ -99,7 +81,7 @@ pub async fn metrics_handler(
 pub async fn prometheus_handler() -> impl IntoResponse {
     let mut buffer = vec![];
     let encoder = TextEncoder::new();
-    let metric_families = observability::get_registry().gather();
+    let metric_families = prometheus::gather();
     encoder.encode(&metric_families, &mut buffer).unwrap();
 
     Response::builder()

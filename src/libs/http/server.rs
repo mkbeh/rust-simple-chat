@@ -22,6 +22,7 @@ use tower_http::{
 };
 use utoipa_axum::{router::OpenApiRouter, routes};
 
+use crate::libs::http::middlewares::metrics_handler;
 pub(crate) use crate::libs::http::{
     InternalServerErrors, errors::ServerError, middlewares, swagger,
 };
@@ -185,13 +186,10 @@ impl<'a> Server<'a> {
             .method_not_allowed_fallback(fallback_handler_405)
             // Panic recovery handler
             .layer(CatchPanicLayer::custom(panic_handler))
+            // Prometheus metrics tracker
+            .layer(middleware::from_fn(metrics_handler))
             // Cors
             .layer(middlewares::init_cors_layer())
-            // Prometheus metrics tracker
-            .layer(middleware::from_fn_with_state(
-                middlewares::get_metrics_state(),
-                middlewares::metrics_handler,
-            ))
             // Request timeout
             .layer(TimeoutLayer::new(self.request_timeout))
             // Compress responses
@@ -287,14 +285,14 @@ async fn liveness() -> (StatusCode, Cow<'static, str>) {
     (StatusCode::OK, Cow::from("OK"))
 }
 
+fn panic_handler(_: Box<dyn Any + Send + 'static>) -> Response<axum::body::Body> {
+    ServerError::ServiceError(&InternalServerErrors::Panic).into_response()
+}
+
 async fn fallback_handler() -> impl IntoResponse {
     ServerError::ServiceError(&InternalServerErrors::MethodNotFound)
 }
 
 async fn fallback_handler_405() -> impl IntoResponse {
     ServerError::ServiceError(&InternalServerErrors::MethodNotAllowed)
-}
-
-fn panic_handler(_: Box<dyn Any + Send + 'static>) -> Response<axum::body::Body> {
-    ServerError::ServiceError(&InternalServerErrors::Panic).into_response()
 }

@@ -6,11 +6,11 @@ use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::{api, api::State};
 
-pub struct ApiRouter {
+pub struct ApiRouterBuilder {
     state: Option<Arc<State>>,
 }
 
-impl ApiRouter {
+impl ApiRouterBuilder {
     pub fn new() -> Self {
         Self { state: None }
     }
@@ -37,7 +37,7 @@ impl ApiRouter {
     }
 }
 
-impl Default for ApiRouter {
+impl Default for ApiRouterBuilder {
     fn default() -> Self {
         Self::new()
     }
