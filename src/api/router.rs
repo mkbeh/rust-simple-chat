@@ -11,10 +11,13 @@ pub struct ApiRouter {
 }
 
 impl ApiRouter {
-    crate::self_method!(state, Arc<State>);
-
     pub fn new() -> Self {
         Self { state: None }
+    }
+
+    pub fn with_state(mut self, state: Arc<State>) -> Self {
+        self.state = Some(state);
+        self
     }
 
     pub fn build(&self) -> OpenApiRouter {

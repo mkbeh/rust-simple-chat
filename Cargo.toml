@@ -65,11 +65,11 @@ tokio-postgres = { version = "0.7.13", features = ["with-chrono-0_4"] }
 tokio-postgres-utils = { version = "0.2.0" }
 deadpool-postgres = { version = "0.14.1" }
 
-metrics = { version = "0.24.1", default-features = false }
-metrics-exporter-prometheus = { version = "0.16.2", default-features = false }
-tracing = { version = "0.1.41" }
-tracing-subscriber = { version = "0.3.19", features = ["env-filter", "json"] }
+tracing = { version = "0.1.41", default-features = false }
+tracing-subscriber = { version = "0.3.19", features = ["env-filter", "registry", "std", "fmt", "json"] }
 tracing-opentelemetry = { version = "0.29.0" }
-opentelemetry = { version = "0.28.0", features = ["trace", "internal-logs"] }
-opentelemetry-otlp = { version = "0.28.0", features = ["trace", "http-proto"] }
-opentelemetry_sdk = { version = "0.28.0", features = ["rt-tokio"] }
+opentelemetry = { version = "0.28.0", features = ["trace", "internal-logs", "metrics"] }
+opentelemetry-otlp = { version = "0.28.0", features = ["trace", "http-proto", "metrics"] }
+opentelemetry_sdk = { version = "0.28.0", features = ["rt-tokio", "trace", "metrics"] }
+opentelemetry-prometheus = { version = "0.28.0" }
+prometheus = { version = "0.13.4" }

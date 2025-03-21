@@ -8,8 +8,8 @@ use entrypoint::Entrypoint;
 #[tokio::main]
 async fn main() {
     libs::hooks::setup_panic_hook();
-    libs::observability::get_tracer_provider();
-    libs::closer::push_callback(Box::new(libs::observability::unset));
+    libs::observability::setup_opentelemetry();
+    libs::closer::push_callback(Box::new(libs::observability::unset_opentelemetry));
 
     let mut entry = Entrypoint::new();
     let entry_result = entry.bootstrap_server().await;

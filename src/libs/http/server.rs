@@ -1,51 +1,33 @@
 use std::{
-    borrow::Cow,
-    fmt,
-    fmt::{Debug, Display},
-    future::ready,
-    iter::once,
-    net::SocketAddr,
-    sync::LazyLock,
-    time::Duration,
+    any::Any, borrow::Cow, fmt::Debug, iter::once, net::SocketAddr, sync::LazyLock, time::Duration,
 };
 
 use anyhow::anyhow;
 use async_trait::async_trait;
 use axum::{
     Router,
-    body::{Body, HttpBody},
-    extract::MatchedPath,
-    http,
-    http::{HeaderName, HeaderValue, Method, StatusCode, header::AUTHORIZATION},
+    http::{HeaderName, StatusCode, header::AUTHORIZATION},
     middleware,
     response::IntoResponse,
     routing::get,
 };
+use axum_core::response::Response;
 use clap::Parser;
-use thiserror::Error;
-use tokio::signal;
+use tokio::{signal, time::timeout};
 use tokio_util::sync::CancellationToken;
 use tower_http::{
-    catch_panic::CatchPanicLayer, classify::ServerErrorsFailureClass,
-    compression::CompressionLayer, cors::CorsLayer, propagate_header::PropagateHeaderLayer,
-    sensitive_headers::SetSensitiveRequestHeadersLayer, timeout::TimeoutLayer, trace::TraceLayer,
+    catch_panic::CatchPanicLayer, compression::CompressionLayer,
+    propagate_header::PropagateHeaderLayer, sensitive_headers::SetSensitiveRequestHeadersLayer,
+    timeout::TimeoutLayer,
 };
-use tracing::Span;
 use utoipa_axum::{router::OpenApiRouter, routes};
 
-use crate::libs::{
-    http::{
-        errors::{ServerError, ServiceError},
-        extractors as http_utils,
-        middlewares::{metrics_handler, panic_handler, setup_metrics_recorder},
-        swagger,
-    },
-    observability::{span_error, span_ok},
+pub(crate) use crate::libs::http::{
+    InternalServerErrors, errors::ServerError, middlewares, swagger,
 };
 
 const SERVER_KIND_APP: &str = "application";
 const SERVER_KIND_METRICS: &str = "metrics";
-static SHUTDOWN_TOKEN: LazyLock<CancellationToken> = LazyLock::new(CancellationToken::new);
 
 #[derive(Parser, Debug, Clone)]
 pub struct Config {
@@ -83,9 +65,19 @@ pub struct Server<'a> {
     processes: Option<&'a Vec<&'static dyn Process>>,
 }
 
+#[macro_export]
+macro_rules! server_method {
+    ($name:ident, $ty:ty) => {
+        pub fn $name(mut self, $name: $ty) -> Self {
+            self.$name = Some($name);
+            self
+        }
+    };
+}
+
 impl<'a> Server<'a> {
-    crate::self_method!(router, OpenApiRouter);
-    crate::self_method!(processes, &'a Vec<&'static dyn Process>);
+    server_method!(router, OpenApiRouter);
+    server_method!(processes, &'a Vec<&'static dyn Process>);
 
     pub fn new(cfg: Config) -> Self {
         Server {
@@ -98,6 +90,9 @@ impl<'a> Server<'a> {
     }
 
     pub async fn run(&self) -> anyhow::Result<()> {
+        const PROCESS_TIMEOUT: Duration = Duration::from_secs(60);
+        static SHUTDOWN_TOKEN: LazyLock<CancellationToken> = LazyLock::new(CancellationToken::new);
+
         let app_server =
             self.bootstrap_server(self.addr.clone(), self.setup_router(), SERVER_KIND_APP);
 
@@ -116,7 +111,7 @@ impl<'a> Server<'a> {
         {
             let tasks: Vec<_> = processes
                 .iter()
-                .map(|p| tokio::spawn(async { p.pre_run().await }))
+                .map(|p| tokio::spawn(timeout(PROCESS_TIMEOUT, async { p.pre_run().await })))
                 .collect();
 
             for task in tasks {
@@ -183,64 +178,20 @@ impl<'a> Server<'a> {
 
         let router = swagger::get_openapi_router(_router);
 
-        router
+        middlewares::trace::with_trace_layer(router)
+            // Fallback 404
+            .fallback(fallback_handler)
+            // Fallback 405
+            .method_not_allowed_fallback(fallback_handler_405)
             // Panic recovery handler
             .layer(CatchPanicLayer::custom(panic_handler))
+            // Cors
+            .layer(middlewares::init_cors_layer())
             // Prometheus metrics tracker
-            .route_layer(middleware::from_fn(metrics_handler))
-            // Tracing
-            .layer(
-                TraceLayer::new_for_http()
-                    .make_span_with(|request: &axum_core::extract::Request<Body>| {
-                        let matched_path = request
-                            .extensions()
-                            .get::<MatchedPath>()
-                            .map(MatchedPath::as_str);
-
-                        tracing::info_span!(
-                            "http_request",
-                            otel.kind = "server",
-                            otel.status_code = tracing::field::Empty,
-                            otel.status_message = tracing::field::Empty,
-                            http.method = ?request.method(),
-                            http.path = matched_path,
-                            http.query_params = request.uri().query(),
-                            http.status_code = tracing::field::Empty,
-                            http.request_size = request.body().size_hint().lower(),
-                            http.response_size = tracing::field::Empty,
-                            user_agent = http_utils::user_agent(request),
-                            http.request_headers = ?request.headers(),
-                        )
-                    })
-                    .on_response(
-                        |response: &axum_core::response::Response<Body>,
-                         _latency: Duration,
-                         span: &Span| {
-                            span.record(
-                                "http.status_code",
-                                tracing::field::display(response.status()),
-                            );
-                            span.record(
-                                "http.response_size",
-                                tracing::field::display(response.body().size_hint().lower()),
-                            );
-
-                            match response.status().as_u16() {
-                                0..=399 => {
-                                    span_ok(span);
-                                }
-                                _ => {
-                                    span_error(span, "received error response".to_string());
-                                }
-                            }
-                        },
-                    )
-                    .on_failure(
-                        |error: ServerErrorsFailureClass, _latency: Duration, span: &Span| {
-                            span_error(span, error.to_string());
-                        },
-                    ),
-            )
+            .layer(middleware::from_fn_with_state(
+                middlewares::get_metrics_state(),
+                middlewares::metrics_handler,
+            ))
             // Request timeout
             .layer(TimeoutLayer::new(self.request_timeout))
             // Compress responses
@@ -251,10 +202,6 @@ impl<'a> Server<'a> {
             .layer(PropagateHeaderLayer::new(HeaderName::from_static(
                 "x-request-id",
             )))
-            // Cors
-            .layer(init_cors_layer())
-            .fallback(fallback_handler)
-            .method_not_allowed_fallback(fallback_handler_405)
     }
 }
 
@@ -288,6 +235,22 @@ async fn shutdown_signal() {
     }
 }
 
+fn setup_panic_hook() {
+    std::panic::set_hook(Box::new(move |panic_info| {
+        // If the panic has a source location, record it as structured fields.
+        if let Some(location) = panic_info.location() {
+            tracing::error!(
+                message = %panic_info,
+                panic.file = location.file(),
+                panic.line = location.line(),
+                panic.column = location.column(),
+            );
+        } else {
+            tracing::error!(message = %panic_info);
+        }
+    }))
+}
+
 fn get_default_router() -> OpenApiRouter {
     OpenApiRouter::new()
         .routes(routes!(readiness))
@@ -295,10 +258,7 @@ fn get_default_router() -> OpenApiRouter {
 }
 
 fn get_metrics_router() -> Router {
-    let recorder_handle = setup_metrics_recorder();
-    Router::from(
-        get_default_router().route("/metrics", get(move || ready(recorder_handle.render()))),
-    )
+    Router::from(get_default_router()).route("/metrics", get(middlewares::prometheus_handler))
 }
 
 /// readiness
@@ -328,83 +288,13 @@ async fn liveness() -> (StatusCode, Cow<'static, str>) {
 }
 
 async fn fallback_handler() -> impl IntoResponse {
-    ServerError::ServiceError(&CommonServerErrors::MethodNotFound)
+    ServerError::ServiceError(&InternalServerErrors::MethodNotFound)
 }
 
 async fn fallback_handler_405() -> impl IntoResponse {
-    ServerError::ServiceError(&CommonServerErrors::MethodNotAllowed)
+    ServerError::ServiceError(&InternalServerErrors::MethodNotAllowed)
 }
 
-fn setup_panic_hook() {
-    std::panic::set_hook(Box::new(move |panic_info| {
-        // If the panic has a source location, record it as structured fields.
-        if let Some(location) = panic_info.location() {
-            tracing::error!(
-                message = %panic_info,
-                panic.file = location.file(),
-                panic.line = location.line(),
-                panic.column = location.column(),
-            );
-        } else {
-            tracing::error!(message = %panic_info);
-        }
-    }))
-}
-
-fn init_cors_layer() -> CorsLayer {
-    CorsLayer::new()
-        .allow_origin("*".parse::<HeaderValue>().unwrap())
-        .allow_methods([
-            Method::GET,
-            Method::POST,
-            Method::DELETE,
-            Method::OPTIONS,
-            Method::PUT,
-            Method::HEAD,
-            Method::PATCH,
-        ])
-        .allow_headers([http::header::CONTENT_TYPE])
-}
-
-const UNHANDLED_ERROR: &str = "UNHANDLED_ERROR";
-const METHOD_NOT_FOUND: &str = "METHOD_NOT_FOUND";
-const METHOD_NOT_ALLOWED: &str = "METHOD_NOT_ALLOWED";
-
-#[derive(Debug, Error)]
-pub enum CommonServerErrors {
-    Panic,
-    MethodNotFound,
-    MethodNotAllowed,
-}
-
-impl Display for CommonServerErrors {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.message())
-    }
-}
-
-impl ServiceError for CommonServerErrors {
-    fn status(&self) -> StatusCode {
-        match self {
-            CommonServerErrors::Panic => StatusCode::INTERNAL_SERVER_ERROR,
-            CommonServerErrors::MethodNotFound => StatusCode::NOT_FOUND,
-            CommonServerErrors::MethodNotAllowed => StatusCode::METHOD_NOT_ALLOWED,
-        }
-    }
-
-    fn message(&self) -> String {
-        match self {
-            CommonServerErrors::Panic => "unhandled error".to_string(),
-            CommonServerErrors::MethodNotFound => "method not found".to_string(),
-            CommonServerErrors::MethodNotAllowed => "method not allowed".to_string(),
-        }
-    }
-
-    fn field_as_string(&self) -> String {
-        match self {
-            CommonServerErrors::Panic => UNHANDLED_ERROR.to_string(),
-            CommonServerErrors::MethodNotFound => METHOD_NOT_FOUND.to_string(),
-            CommonServerErrors::MethodNotAllowed => METHOD_NOT_ALLOWED.to_string(),
-        }
-    }
+fn panic_handler(_: Box<dyn Any + Send + 'static>) -> Response<axum::body::Body> {
+    ServerError::ServiceError(&InternalServerErrors::Panic).into_response()
 }
