@@ -4,26 +4,14 @@ use opentelemetry::{KeyValue, global, trace::TracerProvider};
 use opentelemetry_otlp::{Protocol, SpanExporter, WithExportConfig};
 use opentelemetry_sdk::{
     Resource,
-    metrics::SdkMeterProvider,
     propagation::TraceContextPropagator,
     trace::{Sampler, SdkTracerProvider},
 };
-use prometheus::Registry;
 use tracing_subscriber::{EnvFilter, prelude::*};
-
-pub fn get_registry() -> Registry {
-    static INSTANCE: OnceLock<Registry> = OnceLock::new();
-    INSTANCE.get_or_init(Registry::new).clone()
-}
 
 fn get_tracer_provider() -> SdkTracerProvider {
     static INSTANCE: OnceLock<SdkTracerProvider> = OnceLock::new();
     INSTANCE.get_or_init(init_traces).clone()
-}
-
-fn get_meter_provider() -> SdkMeterProvider {
-    static INSTANCE: OnceLock<SdkMeterProvider> = OnceLock::new();
-    INSTANCE.get_or_init(init_metrics).clone()
 }
 
 fn get_resource() -> Resource {
@@ -62,18 +50,6 @@ fn init_traces() -> SdkTracerProvider {
         .with_resource(get_resource())
         .with_batch_exporter(exporter)
         .with_sampler(sampler)
-        .build()
-}
-
-fn init_metrics() -> SdkMeterProvider {
-    let exporter = opentelemetry_prometheus::exporter()
-        .with_registry(get_registry())
-        .build()
-        .unwrap();
-
-    SdkMeterProvider::builder()
-        .with_reader(exporter)
-        .with_resource(get_resource())
         .build()
 }
 
@@ -144,27 +120,11 @@ pub fn setup_opentelemetry() -> SdkTracerProvider {
         .with(fmt_layer)
         .init();
 
-    // At this point Logs (OTel Logs and Fmt Logs) are initialized, which will
-    // allow internal-logs from Tracing/Metrics initializer to be captured.
-
-    let meter_provider = get_meter_provider();
-    // Set the global meter provider using a clone of the meter_provider.
-    // Setting global meter provider is required if other parts of the application
-    // uses global::meter() or global::meter_with_version() to get a meter.
-    // Cloning simply creates a new reference to the same meter provider. It is
-    // important to hold on to the meter_provider here, so as to invoke
-    // shutdown on it when application ends.
-    global::set_meter_provider(meter_provider.clone());
-
     tracer_provider
 }
 
 pub fn unset_opentelemetry() {
     if let Err(e) = get_tracer_provider().shutdown() {
         tracing::error!("Failed to shutdown tracer provider: {}", e);
-    };
-
-    if let Err(e) = get_meter_provider().shutdown() {
-        tracing::error!("Failed to shutdown meter provider: {}", e);
     };
 }

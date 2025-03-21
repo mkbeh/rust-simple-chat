@@ -7,9 +7,7 @@ use entrypoint::Entrypoint;
 
 #[tokio::main]
 async fn main() {
-    libs::hooks::setup_panic_hook();
-    libs::observability::setup_opentelemetry();
-    libs::closer::push_callback(Box::new(libs::observability::unset_opentelemetry));
+    libs::setup_application();
 
     let mut entry = Entrypoint::new();
     let entry_result = entry.bootstrap_server().await;

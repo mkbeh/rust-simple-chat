@@ -24,6 +24,7 @@ name = "benches"
 harness = false
 
 [dependencies]
+lazy_static = "1.5.0"
 anyhow = { version = "1.0.97", default-features = false }
 serde = { version = "1.0.219", features = ["derive"] }
 chrono = { version = "0.4.40", features = ["serde"] }
@@ -71,5 +72,4 @@ tracing-opentelemetry = { version = "0.29.0" }
 opentelemetry = { version = "0.28.0", features = ["trace", "internal-logs", "metrics"] }
 opentelemetry-otlp = { version = "0.28.0", features = ["trace", "http-proto", "metrics"] }
 opentelemetry_sdk = { version = "0.28.0", features = ["rt-tokio", "trace", "metrics"] }
-opentelemetry-prometheus = { version = "0.28.0" }
-prometheus = { version = "0.13.4" }
+prometheus = { version = "0.13.4", default-features = false }
