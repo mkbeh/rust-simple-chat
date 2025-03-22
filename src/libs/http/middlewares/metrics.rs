@@ -1,3 +1,12 @@
+/// Provides prometheus plug-in metrics for Axum server.
+///
+/// This module tracks the following metrics under the following names:
+///     - http_requests_total{method={"method"},path={"path"},status={"status"}}
+///     - http_request_duration_sum{method={"method"},path={"path"},status={"status"}}
+///     - http_request_duration_count{method={"method"},path={"path"},status={"status"}}
+///     - http_request_duration_bucket{method={"method"},path={"path"},status={"status"}}
+///     - http_request_size{method={"method"},path={"path"},status={"status"}}
+///     - http_response_size{method={"method"},path={"path"},status={"status"}}
 use std::clone::Clone;
 
 use axum::{

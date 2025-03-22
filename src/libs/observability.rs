@@ -7,7 +7,10 @@ use opentelemetry_sdk::{
     propagation::TraceContextPropagator,
     trace::{Sampler, SdkTracerProvider},
 };
-use tracing_subscriber::{EnvFilter, prelude::*};
+use tracing_subscriber::{EnvFilter, fmt::format::FmtSpan, prelude::*};
+
+const DEFAULT_LOG_LEVEL: &str = "debug";
+const DEFAULT_SAMPLE_RATIO: f64 = 1.0;
 
 fn get_tracer_provider() -> SdkTracerProvider {
     static INSTANCE: OnceLock<SdkTracerProvider> = OnceLock::new();
@@ -27,8 +30,6 @@ fn get_resource() -> Resource {
 }
 
 fn init_traces() -> SdkTracerProvider {
-    const DEFAULT_SAMPLE_RATIO: f64 = 1.0;
-
     let exporter = SpanExporter::builder()
         .with_http()
         .with_protocol(Protocol::HttpBinary)
@@ -80,14 +81,17 @@ pub fn setup_opentelemetry() -> SdkTracerProvider {
     // https://github.com/open-telemetry/opentelemetry-rust/issues/761
     let filter_otel = EnvFilter::new("info")
         .add_directive(
-            format!("{}=debug", env!("CARGO_CRATE_NAME"))
-                .parse()
-                .unwrap(),
+            format!(
+                "{}={}",
+                env!("CARGO_CRATE_NAME"),
+                env::var("TRACE_LOG_LEVEL").unwrap_or_else(|_| DEFAULT_LOG_LEVEL.to_string())
+            )
+            .parse()
+            .unwrap(),
         )
         .add_directive("axum=off".parse().unwrap())
         .add_directive("hyper=off".parse().unwrap())
         .add_directive("opentelemetry=off".parse().unwrap())
-        .add_directive("tonic=off".parse().unwrap())
         .add_directive("h2=off".parse().unwrap())
         .add_directive("reqwest=off".parse().unwrap());
     let otel_layer = otel_layer.with_filter(filter_otel);
@@ -97,15 +101,24 @@ pub fn setup_opentelemetry() -> SdkTracerProvider {
     // from OpenTelemetry crates. The filter levels can be customized as needed.
     let filter_fmt = EnvFilter::new("info")
         .add_directive(
-            format!("{}=debug", env!("CARGO_CRATE_NAME"))
-                .parse()
-                .unwrap(),
+            format!(
+                "{}={}",
+                env!("CARGO_CRATE_NAME"),
+                env::var("LOG_LEVEL").unwrap_or_else(|_| DEFAULT_LOG_LEVEL.to_string())
+            )
+            .parse()
+            .unwrap(),
         )
+        .add_directive("hyper=error".parse().unwrap())
+        .add_directive("h2=error".parse().unwrap())
+        .add_directive("reqwest=error".parse().unwrap())
         .add_directive("tower_http=error".parse().unwrap())
         .add_directive("axum::rejection=trace".parse().unwrap())
         .add_directive("tokio_postgres=error".parse().unwrap())
+        .add_directive("tracing=error".parse().unwrap())
         .add_directive("opentelemetry=error".parse().unwrap());
     let fmt_layer = tracing_subscriber::fmt::layer()
+        .with_span_events(FmtSpan::CLOSE)
         .with_thread_names(true)
         .json()
         .flatten_event(true)
