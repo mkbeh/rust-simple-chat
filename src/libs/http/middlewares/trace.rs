@@ -3,7 +3,7 @@ use std::time::Duration;
 use axum::{Router, body::HttpBody, extract::MatchedPath};
 use axum_core::body::Body;
 use tower_http::{classify::ServerErrorsFailureClass, trace::TraceLayer};
-use tracing::Span;
+use tracing::{Level, Span};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use crate::libs::http::extractors as http_utils;
@@ -17,7 +17,8 @@ pub fn with_trace_layer(router: Router) -> Router {
                     .get::<MatchedPath>()
                     .map(MatchedPath::as_str);
 
-                tracing::info_span!(
+                tracing::span!(
+                    Level::TRACE,
                     "http_request",
                     otel.kind = "server",
                     otel.status_code = tracing::field::Empty,
