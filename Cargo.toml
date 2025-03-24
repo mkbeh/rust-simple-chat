@@ -68,8 +68,8 @@ deadpool-postgres = { version = "0.14.1" }
 
 tracing = { version = "0.1.41", default-features = false }
 tracing-subscriber = { version = "0.3.19", features = ["env-filter", "registry", "std", "fmt", "json"] }
-tracing-opentelemetry = { version = "0.29.0" }
-opentelemetry = { version = "0.28.0", features = ["trace", "internal-logs", "metrics"] }
-opentelemetry-otlp = { version = "0.28.0", features = ["trace", "http-proto", "metrics"] }
-opentelemetry_sdk = { version = "0.28.0", features = ["rt-tokio", "trace", "metrics"] }
+tracing-opentelemetry = { version = "0.30.0" }
+opentelemetry = { version = "0.29.0", features = ["trace", "internal-logs", "metrics"] }
+opentelemetry-otlp = { version = "0.29.0", features = ["trace", "http-proto", "metrics"] }
+opentelemetry_sdk = { version = "0.29.0", features = ["rt-tokio", "trace", "metrics"] }
 prometheus = { version = "0.13.4", default-features = false }
