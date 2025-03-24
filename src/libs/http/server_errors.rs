@@ -5,12 +5,6 @@ use thiserror::Error;
 
 use crate::libs::http::errors::ServiceError;
 
-struct FullError {
-    error_type: String,
-    error_message: String,
-    code: StatusCode,
-}
-
 static ERRORS: LazyLock<HashMap<InternalServerErrors, FullError>> = LazyLock::new(|| {
     let mut map = HashMap::new();
 
@@ -43,6 +37,12 @@ static ERRORS: LazyLock<HashMap<InternalServerErrors, FullError>> = LazyLock::ne
 
     map
 });
+
+struct FullError {
+    error_type: String,
+    error_message: String,
+    code: StatusCode,
+}
 
 #[derive(Debug, Error, PartialEq, Eq, Hash)]
 pub enum InternalServerErrors {

@@ -9,14 +9,6 @@ use opentelemetry_sdk::{
 };
 use tracing_subscriber::{EnvFilter, fmt::format::FmtSpan, prelude::*};
 
-const DEFAULT_LOG_LEVEL: &str = "debug";
-const DEFAULT_SAMPLE_RATIO: f64 = 1.0;
-
-fn get_tracer_provider() -> SdkTracerProvider {
-    static INSTANCE: OnceLock<SdkTracerProvider> = OnceLock::new();
-    INSTANCE.get_or_init(init_traces).clone()
-}
-
 fn get_resource() -> Resource {
     static RESOURCE: OnceLock<Resource> = OnceLock::new();
     RESOURCE
@@ -29,7 +21,13 @@ fn get_resource() -> Resource {
         .clone()
 }
 
+fn get_tracer_provider() -> SdkTracerProvider {
+    static INSTANCE: OnceLock<SdkTracerProvider> = OnceLock::new();
+    INSTANCE.get_or_init(init_traces).clone()
+}
+
 fn init_traces() -> SdkTracerProvider {
+    const DEFAULT_SAMPLE_RATIO: f64 = 1.0;
     let exporter = SpanExporter::builder()
         .with_http()
         .with_protocol(Protocol::HttpBinary)
@@ -55,6 +53,7 @@ fn init_traces() -> SdkTracerProvider {
 }
 
 pub fn setup_opentelemetry() -> SdkTracerProvider {
+    const DEFAULT_LOG_LEVEL: &str = "debug";
     global::set_text_map_propagator(TraceContextPropagator::new());
     let tracer_provider = get_tracer_provider();
     // Set the global tracer provider using a clone of the tracer_provider.

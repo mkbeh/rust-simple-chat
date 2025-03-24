@@ -85,8 +85,8 @@ impl IntoResponse for ServerError {
             ),
 
             ServerError::AuthError(jwt_err) => (
-                jwt_err.to_status_code(),
-                jwt_err.to_message(),
+                jwt_err.status(),
+                jwt_err.message(),
                 jwt_err.field_as_string(),
             ),
 
