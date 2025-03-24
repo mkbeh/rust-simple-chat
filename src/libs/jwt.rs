@@ -1,4 +1,4 @@
-use std::{error::Error as StdError, fmt::Display, sync::LazyLock};
+use std::{collections::HashMap, error::Error as StdError, fmt::Display, sync::LazyLock};
 
 use axum::{
     RequestPartsExt,
@@ -15,7 +15,7 @@ use jsonwebtoken::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::libs::http::errors::ServerError;
+use crate::libs::http::errors::{ServerError, ServiceError};
 
 static KEYS: LazyLock<Keys> = LazyLock::new(|| {
     let secret = std::env::var("JWT_SECRET").expect("env var JWT_SECRET must be set");
@@ -90,7 +90,7 @@ impl Display for Claims {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub enum JwtError {
     WrongCredentials,
     MissingCredentials,
@@ -101,48 +101,105 @@ pub enum JwtError {
     ExpiredSignature,
 }
 
-impl JwtError {
-    pub fn field_as_string(&self) -> String {
-        match self {
-            JwtError::WrongCredentials => String::from("WRONG_CREDENTIALS"),
-            JwtError::MissingCredentials => String::from("MISSING_CREDENTIALS"),
-            JwtError::TokenCreation => String::from("TOKEN_CREATION"),
-            JwtError::InvalidToken => String::from("INVALID_TOKEN"),
-            JwtError::InvalidSignature => String::from("INVALID_SIGNATURE"),
-            JwtError::InvalidClaims => String::from("INVALID_CLAIMS"),
-            JwtError::ExpiredSignature => String::from("EXPIRED_SIGNATURE"),
-        }
-    }
-
-    pub fn to_status_code(&self) -> StatusCode {
-        match self {
-            JwtError::WrongCredentials => StatusCode::UNAUTHORIZED,
-            JwtError::MissingCredentials => StatusCode::BAD_REQUEST,
-            JwtError::TokenCreation => StatusCode::INTERNAL_SERVER_ERROR,
-            JwtError::InvalidToken => StatusCode::BAD_REQUEST,
-            JwtError::InvalidSignature => StatusCode::UNAUTHORIZED,
-            JwtError::InvalidClaims => StatusCode::UNAUTHORIZED,
-            JwtError::ExpiredSignature => StatusCode::UNAUTHORIZED,
-        }
-    }
-
-    pub fn to_message(&self) -> String {
-        match self {
-            JwtError::WrongCredentials => String::from("wrong credentials"),
-            JwtError::MissingCredentials => String::from("missing credentials"),
-            JwtError::TokenCreation => String::from("token creation"),
-            JwtError::InvalidToken => String::from("invalid token"),
-            JwtError::InvalidSignature => String::from("invalid signature"),
-            JwtError::InvalidClaims => String::from("invalid claims"),
-            JwtError::ExpiredSignature => String::from("expired signature"),
-        }
-    }
-}
-
 impl Display for JwtError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.to_message())
+        write!(f, "{}", self.message())
     }
 }
 
 impl StdError for JwtError {}
+
+impl ServiceError for JwtError {
+    fn status(&self) -> StatusCode {
+        JWT_ERRORS
+            .get(self)
+            .map_or(StatusCode::INTERNAL_SERVER_ERROR, |e| e.code)
+    }
+
+    fn message(&self) -> String {
+        JWT_ERRORS
+            .get(self)
+            .map_or("unknown error".to_string(), |e| e.error_message.to_string())
+    }
+
+    fn field_as_string(&self) -> String {
+        JWT_ERRORS
+            .get(self)
+            .map_or("UNKNOWN_ERROR".to_string(), |e| e.error_type.to_string())
+    }
+}
+
+struct FullError {
+    error_type: String,
+    error_message: String,
+    code: StatusCode,
+}
+
+static JWT_ERRORS: LazyLock<HashMap<JwtError, FullError>> = LazyLock::new(|| {
+    let mut map = HashMap::new();
+
+    map.insert(
+        JwtError::WrongCredentials,
+        FullError {
+            error_type: "AUTH_WRONG_CREDENTIALS".to_string(),
+            error_message: "wrong credentials".to_string(),
+            code: StatusCode::UNAUTHORIZED,
+        },
+    );
+
+    map.insert(
+        JwtError::MissingCredentials,
+        FullError {
+            error_type: "AUTH_MISSING_CREDENTIALS".to_string(),
+            error_message: "missing credentials".to_string(),
+            code: StatusCode::BAD_REQUEST,
+        },
+    );
+
+    map.insert(
+        JwtError::TokenCreation,
+        FullError {
+            error_type: "AUTH_TOKEN_CREATION".to_string(),
+            error_message: "token creation".to_string(),
+            code: StatusCode::INTERNAL_SERVER_ERROR,
+        },
+    );
+
+    map.insert(
+        JwtError::InvalidToken,
+        FullError {
+            error_type: "AUTH_INVALID_TOKEN".to_string(),
+            error_message: "invalid token".to_string(),
+            code: StatusCode::BAD_REQUEST,
+        },
+    );
+
+    map.insert(
+        JwtError::InvalidSignature,
+        FullError {
+            error_type: "AUTH_INVALID_SIGNATURE".to_string(),
+            error_message: "invalid signature".to_string(),
+            code: StatusCode::UNAUTHORIZED,
+        },
+    );
+
+    map.insert(
+        JwtError::InvalidClaims,
+        FullError {
+            error_type: "AUTH_INVALID_CLAIMS".to_string(),
+            error_message: "invalid claims".to_string(),
+            code: StatusCode::UNAUTHORIZED,
+        },
+    );
+
+    map.insert(
+        JwtError::ExpiredSignature,
+        FullError {
+            error_type: "AUTH_EXPIRED_SIGNATURE".to_string(),
+            error_message: "expired signature".to_string(),
+            code: StatusCode::UNAUTHORIZED,
+        },
+    );
+
+    map
+});

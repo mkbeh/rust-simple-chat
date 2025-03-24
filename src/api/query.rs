@@ -24,15 +24,6 @@ impl Pagination {
     }
 }
 
-impl Default for Pagination {
-    fn default() -> Self {
-        Pagination {
-            limit: Some(0),
-            offset: Some(10),
-        }
-    }
-}
-
 fn empty_string_as_none<'de, D, T>(de: D) -> Result<Option<T>, D::Error>
 where
     D: Deserializer<'de>,
