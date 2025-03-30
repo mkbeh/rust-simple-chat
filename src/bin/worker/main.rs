@@ -2,17 +2,15 @@ extern crate rust_simple_chat as app;
 
 mod entrypoint;
 
-use app::libs;
-use entrypoint::Entrypoint;
-
 #[tokio::main]
 async fn main() {
-    libs::setup_application();
+    static SERVICE_NAME: &str = env!("CARGO_PKG_NAME");
+    caslex_extra::setup_application(SERVICE_NAME);
 
-    let mut entry = Entrypoint::new();
+    let mut entry = entrypoint::Entrypoint::new();
     let entry_result = entry.bootstrap_server().await;
 
-    libs::closer::cleanup_resources();
+    caslex_extra::cleanup_resources();
 
     match entry_result {
         Ok(_) => std::process::exit(0),

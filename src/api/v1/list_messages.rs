@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
 use axum::{Extension, Json, extract::Query};
+use caslex::{errors::DefaultError, middlewares::auth};
 
 use crate::{
     api::{State, query},
     entities,
-    libs::{http::errors::ServerError, jwt},
 };
 
 /// List all messages
@@ -26,10 +26,10 @@ use crate::{
     )
 )]
 pub async fn list_messages_handler(
-    _: jwt::Claims,
+    _: auth::Claims,
     Extension(state): Extension<Arc<State>>,
     Query(params): Query<query::Pagination>,
-) -> Result<Json<Vec<entities::message::MessageResponse>>, ServerError> {
+) -> Result<Json<Vec<entities::message::MessageResponse>>, DefaultError> {
     let result = state
         .messages_repository
         .list_messages(params.get_offset(), params.get_limit())
@@ -37,7 +37,7 @@ pub async fn list_messages_handler(
 
     let db_messages = match result {
         Ok(db_messages) => db_messages,
-        Err(err) => return Err(ServerError::DatabaseError(err)),
+        Err(err) => return Err(DefaultError::Other(err)),
     };
 
     Ok(Json(
@@ -56,7 +56,7 @@ pub async fn list_messages_handler(
 mod tests {
     use std::sync::Arc;
 
-    use axum::{Router, body::Body, extract::Request};
+    use axum::{Router, body::Body, extract::Request, http};
     use chrono::{DateTime, Utc};
     use http_body_util::BodyExt;
     use mockall::predicate::*;

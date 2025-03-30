@@ -1,17 +1,14 @@
 use std::sync::Arc;
 
 use axum::{Extension, Json};
+use caslex::{
+    errors::{AppJson, DefaultError},
+    middlewares::auth,
+};
 use chrono::Utc;
 use validator::Validate;
 
-use crate::{
-    api::State,
-    domain, entities,
-    libs::{
-        http::errors::{AppJson, ServerError},
-        jwt,
-    },
-};
+use crate::{api::State, domain, entities};
 
 /// Post message
 ///
@@ -29,14 +26,14 @@ use crate::{
     )
 )]
 pub async fn post_message_handler(
-    claims: jwt::Claims,
+    claims: auth::Claims,
     Extension(state): Extension<Arc<State>>,
     AppJson(payload): AppJson<entities::message::PostMessageRequest>,
-) -> Result<Json<entities::message::PostMessageResponse>, ServerError> {
+) -> Result<Json<entities::message::PostMessageResponse>, DefaultError> {
     match payload.validate() {
         Ok(_) => {}
         Err(err) => {
-            return Err(ServerError::ValidationError(err));
+            return Err(DefaultError::ValidationError(err));
         }
     }
 
@@ -44,14 +41,14 @@ pub async fn post_message_handler(
         .messages_repository
         .create_message(domain::message::PostMessage {
             content: payload.text,
-            user_id: claims.get_user_id(),
+            user_id: claims.sub.parse::<i32>().unwrap(),
             posted_at: Utc::now(),
         })
         .await;
 
     let message_id = match result {
         Ok(message_id) => message_id,
-        Err(err) => return Err(ServerError::DatabaseError(err)),
+        Err(err) => return Err(DefaultError::Other(err)),
     };
 
     Ok(Json(entities::message::PostMessageResponse { message_id }))
@@ -61,9 +58,9 @@ pub async fn post_message_handler(
 mod tests {
     use std::sync::Arc;
 
-    use axum::{Router, body::Body, extract::Request};
+    use axum::{body::Body, extract::Request, http, Router};
     use http_body_util::BodyExt;
-    use serde_json::{Value, json};
+    use serde_json::{json, Value};
     use tower::ServiceExt;
 
     use crate::{

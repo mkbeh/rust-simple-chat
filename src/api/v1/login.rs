@@ -1,12 +1,11 @@
 use std::sync::Arc;
 
+use anyhow::anyhow;
 use axum::{Extension, Json};
+use caslex::{errors::DefaultError, middlewares::auth::Claims};
+use caslex_extra::security::jwt;
 
-use crate::{
-    api::State,
-    entities,
-    libs::{http::errors::ServerError, jwt, jwt::Claims},
-};
+use crate::{api::State, entities};
 
 /// Login
 ///
@@ -21,7 +20,7 @@ use crate::{
 )]
 pub async fn login_handler(
     Extension(_state): Extension<Arc<State>>,
-) -> Result<Json<entities::auth::LoginResponse>, ServerError> {
+) -> Result<Json<entities::auth::LoginResponse>, DefaultError> {
     const USER_ID: i32 = 123;
     const TOKEN_LIFETIME_SECS: u64 = 300;
 
@@ -29,7 +28,11 @@ pub async fn login_handler(
         sub: USER_ID.to_string(),
         exp: jwt::expiry(TOKEN_LIFETIME_SECS),
     };
-    let token = jwt::encode_token(&claims)?;
+
+    let token = match jwt::encode_token(&claims) {
+        Ok(token) => token,
+        Err(error) => return Err(DefaultError::Other(anyhow!(error))),
+    };
 
     Ok(Json::from(entities::auth::LoginResponse { token }))
 }
@@ -38,7 +41,7 @@ pub async fn login_handler(
 mod tests {
     use std::sync::Arc;
 
-    use axum::{Router, body::Body, http::Request};
+    use axum::{Router, body::Body, http, http::Request};
     use http_body_util::BodyExt;
     use tower::ServiceExt;
 
