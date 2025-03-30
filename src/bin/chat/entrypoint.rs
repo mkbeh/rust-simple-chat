@@ -1,13 +1,9 @@
 use std::sync::Arc;
 
 use anyhow::anyhow;
-use app::{
-    api,
-    infra::repositories,
-    libs,
-    libs::{http, http::Server, postgres_pool},
-};
-use clap::Parser;
+use app::{api, infra::repositories};
+use caslex::server::{Config, Server};
+use caslex_extra::storages::postgres_pool;
 
 pub struct Entrypoint {
     pool: Option<deadpool_postgres::Pool>,
@@ -24,7 +20,7 @@ impl Entrypoint {
             .map_err(|err| anyhow!("failed to create pool: {:?}", err))?;
 
         self.pool = Some(pool.clone());
-        libs::closer::push_callback(Box::new(move || pool.clone().close()));
+        caslex_extra::closer::push_callback(Box::new(move || pool.clone().close()));
 
         let messages_repository = Arc::new(repositories::MessagesRepository::new(
             self.pool.clone().unwrap(),
@@ -38,7 +34,7 @@ impl Entrypoint {
             .with_state(state.clone())
             .build();
 
-        Server::new(http::server::Config::parse())
+        Server::new(Config::parse())
             .router(router)
             .run()
             .await

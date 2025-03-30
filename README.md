@@ -1,27 +1,20 @@
-# Rust Axum and Postgresql - microservice
+# Rust HTTP and Postgresql - microservice
 
-![Platform](https://img.shields.io/badge/platform-linux-green.svg)
-[![GitHub license](https://img.shields.io/github/license/Naereen/StrapDown.js.svg)](https://github.com/Naereen/StrapDown.js/blob/master/LICENSE)
 ![GitHub CI](https://github.com/mkbeh/rust-simple-chat/actions/workflows/ci.yml/badge.svg)
 
 Backend stack using Rust , including interactive API documentation and many useful features out of the box.
+Project based on [caslex](https://github.com/mkbeh/caslex).
 
-**Full list what has been used:**
+**Contains:**
 
-* [axum](https://docs.rs/axum/latest/axum/) - web application framework
-* [clap](https://docs.rs/clap/latest/clap/) - command line argument parser
-* [tokio-postgres](https://docs.rs/tokio-postgres/latest/tokio_postgres/) - an asynchronous, pipelined, PostgreSQL
-  client
-* [deadpool-postgres](https://docs.rs/deadpool-postgres/latest/deadpool_postgres/) - dead simple async pool for
-  connections and objects of any type
-* [validator](https://docs.rs/validator/latest/validator/) - struct validator
-* [jsonwebtoken](https://docs.rs/jsonwebtoken/latest/jsonwebtoken/) - json web token
-* [utoipa](https://docs.rs/utoipa/latest/utoipa/) - provides auto-generated OpenAPI documentation for Rust REST APIs
-* [tracing](https://docs.rs/tracing/latest/tracing/) - a scoped, structured logging and diagnostics system
-* [opentelemetry](https://docs.rs/opentelemetry/latest/opentelemetry/) - implements the API component of OpenTelemetry
-* [prometheus](https://docs.rs/prometheus/latest/prometheus/) - the Rust client library for Prometheus
-* [mockall](https://docs.rs/mockall/latest/mockall/) - provides tools to create mock versions of almost any trait or
-  struct. They can be used in unit tests as a stand-in for the real object
+* HTTP web server
+* Body validation
+* JWT
+* Middlewares
+* API visualizer
+* Postgres pool and migrations
+* Observability
+* Unit tests using  [mockall](https://docs.rs/mockall/latest/mockall/)
 
 ### Interactive API documentation
 
@@ -44,21 +37,9 @@ openssl rand -hex 32
 docker-compose up --build -d
 ```
 
-### Swagger UI
-
-http://localhost:9000/swagger-ui
-
-### Redoc UI
-
-http://localhost:9000/redoc
-
 ### Scalar UI
 
 http://localhost:9000/scalar
-
-### Rapidoc UI
-
-http://localhost:9000/rapidoc
 
 ### Prometheus
 

@@ -1,4 +1,4 @@
-#![allow(missing_docs)]
+#![allow(missing_docs, dead_code)]
 
 extern crate rust_simple_chat as app;
 

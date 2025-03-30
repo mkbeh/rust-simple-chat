@@ -4,10 +4,12 @@ pub mod state;
 pub mod v1;
 
 pub use self::{router::ApiRouterBuilder, state::State};
-use crate::libs::jwt;
 
 pub fn generate_test_token() -> String {
-    let token = jwt::encode_token(&jwt::Claims {
+    use caslex::middlewares::auth;
+    use caslex_extra::security::jwt;
+
+    let token = jwt::encode_token(&auth::Claims {
         sub: 123.to_string(),
         exp: jwt::expiry(1_000),
     })

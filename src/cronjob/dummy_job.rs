@@ -4,9 +4,10 @@ use std::{
 };
 
 use async_trait::async_trait;
+use caslex::server::Process;
 use tokio_util::sync::CancellationToken;
 
-use crate::{infra::repositories::messages::MessagesRepositoryTrait, libs::http::server::Process};
+use crate::infra::repositories::messages::MessagesRepositoryTrait;
 
 pub struct DummyProcess {
     pub ps_num: usize,
