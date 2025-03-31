@@ -96,6 +96,7 @@ jobs:
           cargo sort --workspace --grouped --check
 
   typos:
+    needs: [ "build" ]
     name: Spell Check with Typos
     runs-on: ubuntu-24.04
 
