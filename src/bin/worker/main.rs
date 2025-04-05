@@ -4,8 +4,7 @@ mod entrypoint;
 
 #[tokio::main]
 async fn main() {
-    static SERVICE_NAME: &str = env!("CARGO_PKG_NAME");
-    caslex_extra::setup_application(SERVICE_NAME);
+    caslex_extra::setup_application(env!("CARGO_PKG_NAME"));
 
     let mut entry = entrypoint::Entrypoint::new();
     let entry_result = entry.bootstrap_server().await;
