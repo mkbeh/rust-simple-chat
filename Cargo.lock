@@ -284,9 +284,9 @@ checksum = "d71b6127be86fdcfddb610f7182ac57211d4b18a3e9c82eb2d17662f2227ad6a"
 
 [[package]]
 name = "caslex"
-version = "0.2.2"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e35dee289ebcbcf2404a20afd70f3ba76d1f279797ac75c5bbf5f18d072d463a"
+checksum = "33efd1ee4c94709e14deb6b9c355f929c20c965b09e49b4abfad1dcdaace9d50"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -318,9 +318,9 @@ dependencies = [
 
 [[package]]
 name = "caslex-extra"
-version = "0.2.3"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee5951ec4b9649cfd597af08bb014c65c9bdfaf6b9dd0c5805adc0ed05d43c30"
+checksum = "01cca2e4de2737a9fd1416b9ef98e1d18669ebef58d467b8a5898439c01d5638"
 dependencies = [
  "anyhow",
  "clap",
