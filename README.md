@@ -39,7 +39,7 @@ docker-compose up --build -d
 
 ### Scalar UI
 
-http://localhost:9000/scalar
+http://localhost:9000/docs
 
 ### Prometheus
 
