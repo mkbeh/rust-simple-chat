@@ -1,7 +1,7 @@
 version: 3
 
 vars:
-  RUST_VER: "1.87"
+  RUST_VER: "1.88"
   RUST_IMAGE: "rust:{{.RUST_VER}}-slim"
   ENV_FILE_PATH: "{{.PWD}}/.env.template"
 

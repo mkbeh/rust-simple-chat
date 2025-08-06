@@ -15,5 +15,5 @@ pub fn generate_test_token() -> String {
     })
     .unwrap();
 
-    format!("Bearer {}", token)
+    format!("Bearer {token}")
 }
